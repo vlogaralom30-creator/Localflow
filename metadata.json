@@ -1,0 +1,7 @@
+{
+  "name": "LocalFlow",
+  "description": "YouTube-style offline local video player and feed for Android featuring 9:16 Shorts reel, 16:9 player with smart related videos, albums, and library.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
