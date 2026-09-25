@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,9 +36,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -49,7 +53,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -59,6 +62,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -84,12 +88,13 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.example.data.local.VideoEntity
+import com.example.ui.components.DeleteConfirmationDialog
 import com.example.ui.components.RelatedVideoCard
+import com.example.ui.components.RenameVideoDialog
 import com.example.ui.theme.AmoledBlack
 import com.example.ui.theme.BorderDark
-import com.example.ui.theme.CardElevated
 import com.example.ui.theme.CyanAccent
-import com.example.ui.theme.LiquidCyanAccent
+import com.example.ui.theme.ErrorRed
 import com.example.ui.theme.LiquidGlassButton
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
@@ -112,18 +117,22 @@ fun LongVideoPlayerScreen(
         viewModel.closePlayer()
     }
 
-    var isPlaying by remember { mutableStateOf(true) }
-    var isBuffering by remember { mutableStateOf(true) }
-    var currentPosition by remember { mutableLongStateOf(video.lastPositionMs) }
-    var totalDuration by remember { mutableLongStateOf(video.durationMs.coerceAtLeast(1L)) }
+    var isPlaying by remember(video.id) { mutableStateOf(true) }
+    var isBuffering by remember(video.id) { mutableStateOf(true) }
+    var currentPosition by remember(video.id) { mutableLongStateOf(video.lastPositionMs) }
+    var totalDuration by remember(video.id) { mutableLongStateOf(video.durationMs.coerceAtLeast(1L)) }
     var controlsVisible by remember { mutableStateOf(true) }
     var isDraggingSlider by remember { mutableStateOf(false) }
     var sliderRatio by remember { mutableFloatStateOf(0f) }
     var resizeModeIndex by remember { mutableStateOf(0) } // FIT, ZOOM, FILL
     var showSpeedMenu by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var playbackSpeed by remember { mutableFloatStateOf(1.0f) }
 
-    val exoPlayer = remember(video.id) {
+    // ExoPlayer creation keyed to video.id and video.uri
+    val exoPlayer = remember(video.id, video.uri) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(Uri.parse(video.uri)))
             if (video.lastPositionMs > 0) {
@@ -134,7 +143,7 @@ fun LongVideoPlayerScreen(
         }
     }
 
-    DisposableEffect(exoPlayer) {
+    DisposableEffect(exoPlayer, video.id) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
                 isBuffering = state == Player.STATE_BUFFERING
@@ -162,7 +171,7 @@ fun LongVideoPlayerScreen(
     }
 
     // Polling playback progress
-    LaunchedEffect(isPlaying, isDraggingSlider) {
+    LaunchedEffect(isPlaying, isDraggingSlider, video.id) {
         while (isPlaying && !isDraggingSlider) {
             val pos = exoPlayer.currentPosition
             val dur = exoPlayer.duration
@@ -190,41 +199,47 @@ fun LongVideoPlayerScreen(
         modifier = modifier
             .fillMaxSize()
             .background(AmoledBlack)
+            .statusBarsPadding()
             .testTag("long_video_player_screen")
     ) {
-        // 1. YouTube-style 16:9 ExoPlayer Player Surface
+        // 1. 16:9 ExoPlayer Player Surface (With key(video.id) to guarantee surface reconnection on video switch)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
                 .background(Color.Black)
         ) {
-            AndroidView(
-                factory = { ctx ->
-                    PlayerView(ctx).apply {
-                        player = exoPlayer
-                        useController = false
-                        resizeMode = resizeModes[resizeModeIndex]
-                        layoutParams = FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                    }
-                },
-                update = { view ->
-                    view.resizeMode = resizeModes[resizeModeIndex]
-                },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        controlsVisible = !controlsVisible
-                    }
-            )
+            key(video.id) {
+                AndroidView(
+                    factory = { ctx ->
+                        PlayerView(ctx).apply {
+                            player = exoPlayer
+                            useController = false
+                            resizeMode = resizeModes[resizeModeIndex]
+                            layoutParams = FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                        }
+                    },
+                    update = { view ->
+                        if (view.player != exoPlayer) {
+                            view.player = exoPlayer
+                        }
+                        view.resizeMode = resizeModes[resizeModeIndex]
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            controlsVisible = !controlsVisible
+                        }
+                )
+            }
 
-            // Buffering
+            // Buffering Indicator
             if (isBuffering) {
                 CircularProgressIndicator(
                     color = CyanAccent,
@@ -234,7 +249,7 @@ fun LongVideoPlayerScreen(
             }
 
             // Controls Overlay
-            androidx.compose.animation.AnimatedVisibility(
+            AnimatedVisibility(
                 visible = controlsVisible,
                 enter = fadeIn(),
                 exit = fadeOut(),
@@ -243,19 +258,19 @@ fun LongVideoPlayerScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
+                        .background(Color.Black.copy(alpha = 0.55f))
                 ) {
-                    // Top Bar
+                    // Top Bar Controls
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.TopCenter)
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         LiquidGlassButton(
                             onClick = { viewModel.closePlayer() },
-                            modifier = Modifier.size(42.dp),
+                            modifier = Modifier.size(40.dp),
                             shape = CircleShape
                         ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(20.dp))
@@ -265,10 +280,10 @@ fun LongVideoPlayerScreen(
                         // Aspect ratio mode
                         LiquidGlassButton(
                             onClick = { resizeModeIndex = (resizeModeIndex + 1) % resizeModes.size },
-                            modifier = Modifier.size(42.dp),
+                            modifier = Modifier.size(40.dp),
                             shape = CircleShape
                         ) {
-                            Icon(Icons.Default.AspectRatio, contentDescription = "Aspect ratio", tint = Color.White, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.AspectRatio, contentDescription = "Aspect ratio", tint = Color.White, modifier = Modifier.size(19.dp))
                         }
 
                         Spacer(modifier = Modifier.width(8.dp))
@@ -277,10 +292,10 @@ fun LongVideoPlayerScreen(
                         Box {
                             LiquidGlassButton(
                                 onClick = { showSpeedMenu = true },
-                                modifier = Modifier.size(42.dp),
+                                modifier = Modifier.size(40.dp),
                                 shape = CircleShape
                             ) {
-                                Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White, modifier = Modifier.size(19.dp))
                             }
                             DropdownMenu(
                                 expanded = showSpeedMenu,
@@ -312,10 +327,10 @@ fun LongVideoPlayerScreen(
                                 exoPlayer.seekTo(target)
                                 currentPosition = target
                             },
-                            modifier = Modifier.size(50.dp),
+                            modifier = Modifier.size(48.dp),
                             shape = CircleShape
                         ) {
-                            Icon(Icons.Default.FastRewind, contentDescription = "Rewind 10s", tint = Color.White, modifier = Modifier.size(28.dp))
+                            Icon(Icons.Default.FastRewind, contentDescription = "Rewind 10s", tint = Color.White, modifier = Modifier.size(26.dp))
                         }
 
                         // Prominent Center Liquid Play/Pause Button
@@ -323,7 +338,7 @@ fun LongVideoPlayerScreen(
                             onClick = {
                                 if (isPlaying) exoPlayer.pause() else exoPlayer.play()
                             },
-                            modifier = Modifier.size(68.dp),
+                            modifier = Modifier.size(64.dp),
                             shape = CircleShape,
                             isProminent = true
                         ) {
@@ -331,7 +346,7 @@ fun LongVideoPlayerScreen(
                                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                 contentDescription = if (isPlaying) "Pause" else "Play",
                                 tint = Color.Black,
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(34.dp)
                             )
                         }
 
@@ -341,10 +356,10 @@ fun LongVideoPlayerScreen(
                                 exoPlayer.seekTo(target)
                                 currentPosition = target
                             },
-                            modifier = Modifier.size(50.dp),
+                            modifier = Modifier.size(48.dp),
                             shape = CircleShape
                         ) {
-                            Icon(Icons.Default.FastForward, contentDescription = "Forward 10s", tint = Color.White, modifier = Modifier.size(28.dp))
+                            Icon(Icons.Default.FastForward, contentDescription = "Forward 10s", tint = Color.White, modifier = Modifier.size(26.dp))
                         }
                     }
 
@@ -353,7 +368,7 @@ fun LongVideoPlayerScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.BottomCenter)
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         val durationSafe = totalDuration.coerceAtLeast(1L)
                         val ratio = if (isDraggingSlider) sliderRatio else (currentPosition.toFloat() / durationSafe.toFloat()).coerceIn(0f, 1f)
@@ -398,14 +413,14 @@ fun LongVideoPlayerScreen(
             }
         }
 
-        // 2. Video Info & Actions & Related Videos (Scrollable list underneath player)
+        // 2. Video Info, Action Row & Smooth Scrollable Related Videos Feed
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
                 .padding(horizontal = 16.dp)
         ) {
-            // Title
+            // Title & Technical Badges
             item {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
@@ -416,7 +431,6 @@ fun LongVideoPlayerScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Technical Badges Row: 1080p, 23.98 FPS, 1.8 GB, MP4, Movies
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -441,7 +455,7 @@ fun LongVideoPlayerScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Action Row Buttons: Watch Later, Add to Album, Background Play, Share, More
+                // Action Row Buttons: Watch Later, Add to Album, Background, Share, More
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround,
@@ -464,23 +478,68 @@ fun LongVideoPlayerScreen(
                         tint = if (isBgAudio) CyanAccent else TextSecondary,
                         onClick = { viewModel.toggleBackgroundAudio() }
                     )
+                    // Direct Share Button (WhatsApp, FB, Messenger, Telegram, etc.)
                     PlayerActionButton(
                         icon = Icons.Default.Share,
                         label = "Share",
                         onClick = {
-                            val intent = Intent(Intent.ACTION_SEND).apply {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = video.mimeType ?: "video/*"
-                                putExtra(Intent.EXTRA_STREAM, Uri.parse(video.uri))
+                                val uri = Uri.parse(video.uri)
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                putExtra(Intent.EXTRA_SUBJECT, video.title)
+                                putExtra(Intent.EXTRA_TEXT, "Watch \"${video.title}\" on LocalFlow")
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
-                            context.startActivity(Intent.createChooser(intent, "Share Video"))
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Video via"))
                         }
                     )
-                    PlayerActionButton(
-                        icon = Icons.Default.MoreVert,
-                        label = "More",
-                        onClick = { viewModel.showDetails(video) }
-                    )
+                    // More Button with Dropdown (Rename, Delete, Info, Add to Album)
+                    Box {
+                        PlayerActionButton(
+                            icon = Icons.Default.MoreVert,
+                            label = "More",
+                            onClick = { showMoreMenu = true }
+                        )
+
+                        DropdownMenu(
+                            expanded = showMoreMenu,
+                            onDismissRequest = { showMoreMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Rename Video") },
+                                onClick = {
+                                    showMoreMenu = false
+                                    showRenameDialog = true
+                                },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = CyanAccent) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Add to Album") },
+                                onClick = {
+                                    showMoreMenu = false
+                                    viewModel.openAddToAlbum(video)
+                                },
+                                leadingIcon = { Icon(Icons.Default.PlaylistAdd, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Details & Info") },
+                                onClick = {
+                                    showMoreMenu = false
+                                    viewModel.showDetails(video)
+                                },
+                                leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Remove Video", color = ErrorRed) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    showDeleteConfirmDialog = true
+                                },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = ErrorRed) }
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -496,7 +555,7 @@ fun LongVideoPlayerScreen(
                 Spacer(modifier = Modifier.height(6.dp))
             }
 
-            // Related Videos List (Local Metadata Algorithm)
+            // Smooth Related Videos List Items
             if (relatedVideos.isEmpty()) {
                 item {
                     Text(
@@ -516,9 +575,33 @@ fun LongVideoPlayerScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(28.dp))
             }
         }
+    }
+
+    // Rename Video Dialog
+    if (showRenameDialog) {
+        RenameVideoDialog(
+            initialTitle = video.title,
+            onDismiss = { showRenameDialog = false },
+            onConfirm = { newName ->
+                viewModel.renameVideo(video.id, newName)
+                showRenameDialog = false
+            }
+        )
+    }
+
+    // Delete Video Confirmation Dialog
+    if (showDeleteConfirmDialog) {
+        DeleteConfirmationDialog(
+            videoTitle = video.title,
+            onDismiss = { showDeleteConfirmDialog = false },
+            onConfirm = {
+                viewModel.deleteVideo(video)
+                showDeleteConfirmDialog = false
+            }
+        )
     }
 }
 

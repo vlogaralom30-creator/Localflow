@@ -60,6 +60,7 @@ import com.example.ui.components.LongVideoFeedCard
 import com.example.ui.components.ShortVideoShelfCard
 import com.example.ui.components.StoragePermissionHandler
 import com.example.ui.theme.AmoledBlack
+import com.example.ui.theme.BorderDark
 import com.example.ui.theme.CardElevated
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.TextMuted
@@ -130,42 +131,35 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    com.example.ui.theme.LiquidGlassButton(
+                    com.example.ui.theme.LiquidGlassCircleButton(
                         onClick = { filePickerLauncher.launch(arrayOf("video/*")) },
-                        modifier = Modifier.size(38.dp).testTag("home_pick_file_btn"),
-                        shape = CircleShape
+                        size = 38.dp,
+                        modifier = Modifier.testTag("home_pick_file_btn")
                     ) {
                         Icon(Icons.Default.FileOpen, contentDescription = "Open video file", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    com.example.ui.theme.LiquidGlassButton(
+                    Spacer(modifier = Modifier.width(6.dp))
+                    com.example.ui.theme.LiquidGlassCircleButton(
                         onClick = { viewModel.scanVideos() },
-                        modifier = Modifier.size(38.dp).testTag("home_refresh_btn"),
-                        shape = CircleShape
+                        size = 38.dp,
+                        modifier = Modifier.testTag("home_refresh_btn")
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = "Rescan media", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    com.example.ui.theme.LiquidGlassButton(
+                    Spacer(modifier = Modifier.width(6.dp))
+                    com.example.ui.theme.LiquidGlassCircleButton(
                         onClick = { viewModel.openSearch() },
-                        modifier = Modifier.size(38.dp).testTag("home_search_btn"),
-                        shape = CircleShape
+                        size = 38.dp,
+                        modifier = Modifier.testTag("home_search_btn")
                     ) {
                         Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    com.example.ui.theme.LiquidGlassButton(
-                        onClick = { viewModel.toggleTheme() },
-                        modifier = Modifier.size(38.dp).testTag("home_theme_toggle_btn"),
-                        shape = CircleShape
-                    ) {
-                        Icon(
-                            imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = if (isDarkTheme) "Switch to Light theme" else "Switch to Dark theme",
-                            tint = if (isDarkTheme) Color(0xFFFFD54F) else TextPrimary,
-                            modifier = Modifier.size(19.dp)
-                        )
-                    }
+                    com.example.ui.theme.LiquidShiftLightDarkToggle(
+                        isDark = isDarkTheme,
+                        onToggle = { viewModel.toggleTheme() },
+                        modifier = Modifier.testTag("home_theme_toggle_btn")
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -362,10 +356,14 @@ private fun EmptyFeedPlaceholder(
                 onClick = onScan,
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CyanAccent)
             ) {
-                Text("Scan Storage", color = Color.Black)
+                Text("Scan Storage", color = Color.Black, fontWeight = FontWeight.Bold)
             }
-            androidx.compose.material3.OutlinedButton(onClick = onPickFile) {
-                Text("Pick Video", color = TextPrimary)
+            androidx.compose.material3.OutlinedButton(
+                onClick = onPickFile,
+                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark)
+            ) {
+                Text("Pick Video", color = TextPrimary, fontWeight = FontWeight.Medium)
             }
         }
     }

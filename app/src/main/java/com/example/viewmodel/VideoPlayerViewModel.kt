@@ -334,6 +334,17 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun renameVideo(videoId: Long, newTitle: String) {
+        if (newTitle.isBlank()) return
+        viewModelScope.launch {
+            repository.renameVideo(videoId, newTitle.trim())
+            if (_currentPlayingVideo.value?.id == videoId) {
+                _currentPlayingVideo.value = _currentPlayingVideo.value?.copy(title = newTitle.trim())
+            }
+            _statusMessage.value = "Renamed to \"$newTitle\""
+        }
+    }
+
     fun deleteVideo(video: VideoEntity) {
         viewModelScope.launch {
             repository.deleteVideo(video)

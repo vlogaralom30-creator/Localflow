@@ -116,10 +116,10 @@ fun AlbumsScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = AmoledBlack)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
             },
-            containerColor = AmoledBlack
+            containerColor = Color.Transparent
         ) { innerPadding ->
             if (albumVideos.isEmpty()) {
                 Box(

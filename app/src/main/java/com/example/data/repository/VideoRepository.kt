@@ -224,6 +224,10 @@ class VideoRepository(
         videoDao.updateFavorite(id, isFavorite)
     }
 
+    suspend fun renameVideo(id: Long, title: String) = withContext(Dispatchers.IO) {
+        videoDao.updateVideoTitle(id, title)
+    }
+
     suspend fun deleteVideo(video: VideoEntity) = withContext(Dispatchers.IO) {
         videoDao.deleteVideo(video)
     }

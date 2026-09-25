@@ -230,6 +230,8 @@ private fun LibraryNavigationRow(
     countText: String,
     onClick: () -> Unit
 ) {
+    val isDark = com.example.ui.theme.LocalIsDarkTheme.current
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -237,21 +239,37 @@ private fun LibraryNavigationRow(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 brush = Brush.verticalGradient(
-                    listOf(
-                        Color(0x35FFFFFF),
-                        Color(0x20152032),
-                        Color(0x350A0F1A)
-                    )
+                    colors = if (isDark) {
+                        listOf(
+                            Color(0x35FFFFFF),
+                            Color(0x20152032),
+                            Color(0x350A0F1A)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xF5FFFFFF),
+                            Color(0xEBF8FAFC),
+                            Color(0xE0F1F5F9)
+                        )
+                    }
                 )
             )
             .border(
                 width = 0.8.dp,
                 brush = Brush.verticalGradient(
-                    listOf(
-                        Color(0x52FFFFFF),
-                        Color(0x15FFFFFF),
-                        Color(0x2800E5FF)
-                    )
+                    if (isDark) {
+                        listOf(
+                            Color(0x52FFFFFF),
+                            Color(0x15FFFFFF),
+                            Color(0x2800E5FF)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFFFFFFFF),
+                            Color(0x80CBD5E1),
+                            Color(0x4000B4D8)
+                        )
+                    }
                 ),
                 shape = RoundedCornerShape(16.dp)
             )

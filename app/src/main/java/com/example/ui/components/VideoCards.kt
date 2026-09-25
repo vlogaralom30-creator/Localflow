@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
@@ -324,10 +327,13 @@ fun LongVideoFeedCard(
     onAddToAlbum: () -> Unit,
     onShowDetails: () -> Unit,
     onDelete: () -> Unit,
+    onRename: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -461,6 +467,32 @@ fun LongVideoFeedCard(
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
+                        text = { Text("Share Video") },
+                        onClick = {
+                            showMenu = false
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = video.mimeType ?: "video/*"
+                                val uri = Uri.parse(video.uri)
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                putExtra(Intent.EXTRA_SUBJECT, video.title)
+                                putExtra(Intent.EXTRA_TEXT, "Watch \"${video.title}\" on LocalFlow")
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Video via"))
+                        },
+                        leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = CyanAccent) }
+                    )
+                    if (onRename != null) {
+                        DropdownMenuItem(
+                            text = { Text("Rename Video") },
+                            onClick = {
+                                showMenu = false
+                                showRenameDialog = true
+                            },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = CyanAccent) }
+                        )
+                    }
+                    DropdownMenuItem(
                         text = { Text(if (video.isWatchLater) "Remove from Watch Later" else "Save to Watch Later") },
                         onClick = {
                             showMenu = false
@@ -494,13 +526,35 @@ fun LongVideoFeedCard(
                         text = { Text("Delete from LocalFlow", color = ErrorRed) },
                         onClick = {
                             showMenu = false
-                            onDelete()
+                            showDeleteConfirmDialog = true
                         },
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = ErrorRed) }
                     )
                 }
             }
         }
+    }
+
+    if (showRenameDialog && onRename != null) {
+        RenameVideoDialog(
+            initialTitle = video.title,
+            onDismiss = { showRenameDialog = false },
+            onConfirm = { newTitle ->
+                onRename(newTitle)
+                showRenameDialog = false
+            }
+        )
+    }
+
+    if (showDeleteConfirmDialog) {
+        DeleteConfirmationDialog(
+            videoTitle = video.title,
+            onDismiss = { showDeleteConfirmDialog = false },
+            onConfirm = {
+                onDelete()
+                showDeleteConfirmDialog = false
+            }
+        )
     }
 }
 

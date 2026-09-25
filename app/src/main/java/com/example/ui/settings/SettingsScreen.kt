@@ -53,6 +53,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.theme.AmoledBlack
 import com.example.ui.theme.CardDark
 import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.CyanAccentLight
+import com.example.ui.theme.LocalIsDarkTheme
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -109,13 +111,70 @@ fun SettingsScreen(
             }
 
             item {
-                SettingsSwitchRow(
-                    icon = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
-                    title = "Dark Theme",
-                    subtitle = if (isDarkTheme) "Deep AMOLED liquid glass theme" else "Bright pearl liquid glass theme",
-                    checked = isDarkTheme,
-                    onCheckedChange = { viewModel.setDarkTheme(it) }
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = if (isDarkTheme) {
+                                    listOf(Color(0x38FFFFFF), Color(0x20152032), Color(0x350A0F1A))
+                                } else {
+                                    listOf(Color(0xF5FFFFFF), Color(0xEBF8FAFC), Color(0xE0F1F5F9))
+                                }
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                if (isDarkTheme) {
+                                    listOf(Color(0x60FFFFFF), Color(0x15FFFFFF), Color(0x3500E5FF))
+                                } else {
+                                    listOf(Color(0xFFFFFFFF), Color(0x80CBD5E1), Color(0x4000B4D8))
+                                }
+                            ),
+                            shape = RoundedCornerShape(18.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                contentDescription = null,
+                                tint = if (isDarkTheme) CyanAccent else Color(0xFFF59E0B),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    text = if (isDarkTheme) "Dark Liquid Theme" else "Light Liquid Theme",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = if (isDarkTheme) "Deep AMOLED crystal glass refraction" else "Bright pearl crystal glass refraction",
+                                    fontSize = 11.sp,
+                                    color = TextMuted
+                                )
+                            }
+                        }
+
+                        com.example.ui.theme.LiquidShiftLightDarkToggle(
+                            isDark = isDarkTheme,
+                            onToggle = { viewModel.toggleTheme() }
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
@@ -172,18 +231,36 @@ fun SettingsScreen(
             }
 
             item {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = CardDark,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = if (isDarkTheme) {
+                                    listOf(Color(0x35FFFFFF), Color(0x20152032), Color(0x350A0F1A))
+                                } else {
+                                    listOf(Color(0xF5FFFFFF), Color(0xEBF8FAFC), Color(0xE0F1F5F9))
+                                }
+                            )
+                        )
+                        .border(
+                            width = 0.8.dp,
+                            brush = Brush.verticalGradient(
+                                if (isDarkTheme) {
+                                    listOf(Color(0x52FFFFFF), Color(0x15FFFFFF), Color(0x2800E5FF))
+                                } else {
+                                    listOf(Color(0xFFFFFFFF), Color(0x80CBD5E1), Color(0x4000B4D8))
+                                }
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
                         .clickable { viewModel.scanVideos() }
+                        .padding(16.dp)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, tint = CyanAccent)
@@ -204,17 +281,35 @@ fun SettingsScreen(
                     }
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = CardDark,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = if (isDarkTheme) {
+                                    listOf(Color(0x35FFFFFF), Color(0x20152032), Color(0x350A0F1A))
+                                } else {
+                                    listOf(Color(0xF5FFFFFF), Color(0xEBF8FAFC), Color(0xE0F1F5F9))
+                                }
+                            )
+                        )
+                        .border(
+                            width = 0.8.dp,
+                            brush = Brush.verticalGradient(
+                                if (isDarkTheme) {
+                                    listOf(Color(0x52FFFFFF), Color(0x15FFFFFF), Color(0x2800E5FF))
+                                } else {
+                                    listOf(Color(0xFFFFFFFF), Color(0x80CBD5E1), Color(0x4000B4D8))
+                                }
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .padding(16.dp)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.Info, contentDescription = null, tint = TextSecondary)
@@ -251,6 +346,8 @@ private fun SettingsSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -258,21 +355,37 @@ private fun SettingsSwitchRow(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 brush = Brush.verticalGradient(
-                    listOf(
-                        Color(0x35FFFFFF),
-                        Color(0x20152032),
-                        Color(0x350A0F1A)
-                    )
+                    colors = if (isDark) {
+                        listOf(
+                            Color(0x35FFFFFF),
+                            Color(0x20152032),
+                            Color(0x350A0F1A)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xF5FFFFFF),
+                            Color(0xEBF8FAFC),
+                            Color(0xE0F1F5F9)
+                        )
+                    }
                 )
             )
             .border(
                 width = 0.8.dp,
                 brush = Brush.verticalGradient(
-                    listOf(
-                        Color(0x52FFFFFF),
-                        Color(0x15FFFFFF),
-                        Color(0x2800E5FF)
-                    )
+                    if (isDark) {
+                        listOf(
+                            Color(0x52FFFFFF),
+                            Color(0x15FFFFFF),
+                            Color(0x2800E5FF)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFFFFFFFF),
+                            Color(0x80CBD5E1),
+                            Color(0x4000B4D8)
+                        )
+                    }
                 ),
                 shape = RoundedCornerShape(16.dp)
             )
@@ -309,10 +422,10 @@ private fun SettingsSwitchRow(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = AmoledBlack,
-                    checkedTrackColor = CyanAccent,
-                    uncheckedThumbColor = TextMuted,
-                    uncheckedTrackColor = Color(0x33FFFFFF)
+                    checkedThumbColor = if (isDark) AmoledBlack else Color.White,
+                    checkedTrackColor = if (isDark) CyanAccent else CyanAccentLight,
+                    uncheckedThumbColor = if (isDark) TextMuted else Color(0xFF94A3B8),
+                    uncheckedTrackColor = if (isDark) Color(0x33FFFFFF) else Color(0xFFCBD5E1)
                 )
             )
         }

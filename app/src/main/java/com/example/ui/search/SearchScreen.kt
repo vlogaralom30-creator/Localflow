@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import com.example.ui.theme.AmbientLiquidBackdrop
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -89,46 +90,47 @@ fun SearchScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("search_screen"),
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    IconButton(onClick = { viewModel.closeSearch() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
-                    }
-                },
-                title = {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = { viewModel.setSearchQuery(it) },
-                        placeholder = { Text("Search videos, folders, albums...", color = TextMuted) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
-                        ),
-                        trailingIcon = {
-                            if (query.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear", tint = TextSecondary)
+    AmbientLiquidBackdrop(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("search_screen"),
+            topBar = {
+                TopAppBar(
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.closeSearch() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                        }
+                    },
+                    title = {
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = { viewModel.setSearchQuery(it) },
+                            placeholder = { Text("Search videos, folders, albums...", color = TextMuted) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary
+                            ),
+                            trailingIcon = {
+                                if (query.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear", tint = TextSecondary)
+                                    }
                                 }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("search_input_field")
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AmoledBlack)
-            )
-        },
-        containerColor = AmoledBlack
-    ) { innerPadding ->
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("search_input_field")
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+            },
+            containerColor = Color.Transparent
+        ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -275,4 +277,5 @@ fun SearchScreen(
             }
         }
     }
+}
 }

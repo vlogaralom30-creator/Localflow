@@ -293,7 +293,7 @@ fun CreateAlbumDialog(
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = CyanAccent)
             ) {
-                Text("Create", color = androidx.compose.ui.graphics.Color.Black)
+                Text("Create", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -303,3 +303,76 @@ fun CreateAlbumDialog(
         }
     )
 }
+
+@Composable
+fun RenameVideoDialog(
+    initialTitle: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var title by remember { mutableStateOf(initialTitle) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename Video", color = TextPrimary, fontWeight = FontWeight.Bold) },
+        text = {
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Video Title") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("rename_video_input")
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (title.isNotBlank()) {
+                        onConfirm(title.trim())
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = CyanAccent)
+            ) {
+                Text("Save", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextMuted)
+            }
+        }
+    )
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    videoTitle: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Remove Video", color = TextPrimary, fontWeight = FontWeight.Bold) },
+        text = {
+            Text(
+                text = "Are you sure you want to remove \"$videoTitle\" from LocalFlow?",
+                color = TextSecondary,
+                fontSize = 14.sp
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
+            ) {
+                Text("Remove", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextMuted)
+            }
+        }
+    )
+}
+

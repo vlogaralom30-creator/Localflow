@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -15,28 +16,68 @@ import androidx.core.view.WindowCompat
 
 val LocalIsDarkTheme = compositionLocalOf { true }
 
+val TextPrimary: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = if (LocalIsDarkTheme.current) TextPrimaryDark else TextPrimaryLight
+
+val TextSecondary: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = if (LocalIsDarkTheme.current) TextSecondaryDark else TextSecondaryLight
+
+val TextMuted: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = if (LocalIsDarkTheme.current) TextMutedDark else TextMutedLight
+
+val CardDark: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = if (LocalIsDarkTheme.current) RawCardDark else CardLight
+
+val CardElevated: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = if (LocalIsDarkTheme.current) RawCardElevated else CardLightElevated
+
+val BorderDark: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = if (LocalIsDarkTheme.current) RawBorderDark else BorderLightMode
+
+val DividerDark: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = if (LocalIsDarkTheme.current) RawDividerDark else DividerLightMode
+
+val SurfaceDark: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = if (LocalIsDarkTheme.current) RawSurfaceDark else SurfaceLight
+
 private val NaxxivoDarkColorScheme = darkColorScheme(
     primary = CyanAccent,
     onPrimary = AmoledBlack,
-    primaryContainer = CardElevated,
+    primaryContainer = RawCardElevated,
     onPrimaryContainer = CyanAccent,
     secondary = BlueAccent,
-    onSecondary = TextPrimary,
-    secondaryContainer = CardDark,
-    onSecondaryContainer = TextPrimary,
+    onSecondary = TextPrimaryDark,
+    secondaryContainer = RawCardDark,
+    onSecondaryContainer = TextPrimaryDark,
     tertiary = SuccessGreen,
     onTertiary = AmoledBlack,
     background = AmoledBlack,
-    onBackground = TextPrimary,
-    surface = SurfaceDark,
-    onSurface = TextPrimary,
-    surfaceVariant = CardDark,
-    onSurfaceVariant = TextSecondary,
+    onBackground = TextPrimaryDark,
+    surface = RawSurfaceDark,
+    onSurface = TextPrimaryDark,
+    surfaceVariant = RawCardDark,
+    onSurfaceVariant = TextSecondaryDark,
     surfaceTint = CyanAccent,
-    outline = BorderDark,
-    outlineVariant = DividerDark,
+    outline = RawBorderDark,
+    outlineVariant = RawDividerDark,
     error = ErrorRed,
-    onError = TextPrimary
+    onError = TextPrimaryDark
 )
 
 private val NaxxivoLightColorScheme = lightColorScheme(
