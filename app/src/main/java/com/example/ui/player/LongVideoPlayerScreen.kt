@@ -93,12 +93,13 @@ import com.example.ui.components.RelatedVideoCard
 import com.example.ui.components.RenameVideoDialog
 import com.example.ui.theme.AmoledBlack
 import com.example.ui.theme.BorderDark
-import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.ErrorRed
 import com.example.ui.theme.LiquidGlassButton
+import com.example.ui.theme.LocalLiquidPreset
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.getPaletteForPreset
 import com.example.viewmodel.VideoPlayerViewModel
 import kotlinx.coroutines.delay
 
@@ -112,6 +113,8 @@ fun LongVideoPlayerScreen(
     val context = LocalContext.current
     val relatedVideos by viewModel.relatedVideos.collectAsStateWithLifecycle()
     val isBgAudio by viewModel.backgroundAudio.collectAsStateWithLifecycle()
+    val preset by viewModel.liquidPreset.collectAsStateWithLifecycle()
+    val palette = getPaletteForPreset(preset)
 
     BackHandler {
         viewModel.closePlayer()
@@ -202,7 +205,7 @@ fun LongVideoPlayerScreen(
             .statusBarsPadding()
             .testTag("long_video_player_screen")
     ) {
-        // 1. 16:9 ExoPlayer Player Surface (With key(video.id) to guarantee surface reconnection on video switch)
+        // 1. 16:9 ExoPlayer Player Surface
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -242,14 +245,14 @@ fun LongVideoPlayerScreen(
             // Buffering Indicator
             if (isBuffering) {
                 CircularProgressIndicator(
-                    color = CyanAccent,
+                    color = palette.primaryGlow,
                     strokeWidth = 3.dp,
                     modifier = Modifier.align(Alignment.Center).size(50.dp)
                 )
             }
 
             // Controls Overlay
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
                 visible = controlsVisible,
                 enter = fadeIn(),
                 exit = fadeOut(),
@@ -315,7 +318,7 @@ fun LongVideoPlayerScreen(
                         }
                     }
 
-                    // Center Rewind / Play-Pause / Forward (Liquid Glass Controls)
+                    // Center Rewind / Play-Pause / Forward Controls
                     Row(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalArrangement = Arrangement.spacedBy(28.dp),
@@ -386,8 +389,8 @@ fun LongVideoPlayerScreen(
                                 isDraggingSlider = false
                             },
                             colors = SliderDefaults.colors(
-                                thumbColor = CyanAccent,
-                                activeTrackColor = CyanAccent,
+                                thumbColor = palette.primaryGlow,
+                                activeTrackColor = palette.primaryGlow,
                                 inactiveTrackColor = Color.White.copy(alpha = 0.3f)
                             ),
                             modifier = Modifier.fillMaxWidth().height(20.dp)
@@ -441,11 +444,11 @@ fun LongVideoPlayerScreen(
                     TechBadge(text = "MP4")
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = CyanAccent.copy(alpha = 0.15f)
+                        color = palette.primaryGlow.copy(alpha = 0.15f)
                     ) {
                         Text(
                             text = "📁 ${video.folderName}",
-                            color = CyanAccent,
+                            color = palette.primaryGlow,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -455,7 +458,7 @@ fun LongVideoPlayerScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Action Row Buttons: Watch Later, Add to Album, Background, Share, More
+                // Action Row Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround,
@@ -464,7 +467,7 @@ fun LongVideoPlayerScreen(
                     PlayerActionButton(
                         icon = if (video.isWatchLater) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                         label = "Watch Later",
-                        tint = if (video.isWatchLater) CyanAccent else TextSecondary,
+                        tint = if (video.isWatchLater) palette.primaryGlow else TextSecondary,
                         onClick = { viewModel.toggleWatchLater(video) }
                     )
                     PlayerActionButton(
@@ -475,10 +478,9 @@ fun LongVideoPlayerScreen(
                     PlayerActionButton(
                         icon = Icons.Default.Headphones,
                         label = "Background",
-                        tint = if (isBgAudio) CyanAccent else TextSecondary,
+                        tint = if (isBgAudio) palette.primaryGlow else TextSecondary,
                         onClick = { viewModel.toggleBackgroundAudio() }
                     )
-                    // Direct Share Button (WhatsApp, FB, Messenger, Telegram, etc.)
                     PlayerActionButton(
                         icon = Icons.Default.Share,
                         label = "Share",
@@ -494,7 +496,6 @@ fun LongVideoPlayerScreen(
                             context.startActivity(Intent.createChooser(shareIntent, "Share Video via"))
                         }
                     )
-                    // More Button with Dropdown (Rename, Delete, Info, Add to Album)
                     Box {
                         PlayerActionButton(
                             icon = Icons.Default.MoreVert,
@@ -512,7 +513,7 @@ fun LongVideoPlayerScreen(
                                     showMoreMenu = false
                                     showRenameDialog = true
                                 },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = CyanAccent) }
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = palette.primaryGlow) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Add to Album") },

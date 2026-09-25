@@ -1,7 +1,5 @@
 package com.example.ui.library
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,13 +29,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -46,7 +40,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -54,13 +47,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.components.LongVideoFeedCard
-import com.example.ui.theme.AmoledBlack
-import com.example.ui.theme.CardDark
-import com.example.ui.theme.CardElevated
-import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.LiquidGlassCircleButton
+import com.example.ui.theme.LiquidGlassDimens
+import com.example.ui.theme.LiquidGlassFilterChip
+import com.example.ui.theme.LocalIsDarkTheme
+import com.example.ui.theme.LocalLiquidPreset
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.getPaletteForPreset
+import com.example.ui.theme.liquidGlass
 import com.example.viewmodel.LibraryFilter
 import com.example.viewmodel.VideoPlayerViewModel
 
@@ -93,10 +88,9 @@ fun LibraryScreen(
                     )
                 },
                 actions = {
-                    com.example.ui.theme.LiquidGlassButton(
+                    LiquidGlassCircleButton(
                         onClick = { viewModel.openSearch() },
-                        modifier = Modifier.size(38.dp),
-                        shape = CircleShape
+                        size = 38.dp
                     ) {
                         Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
@@ -127,7 +121,7 @@ fun LibraryScreen(
                     )
                     items(filters) { (filt, label) ->
                         val isSelected = selectedFilter == filt
-                        com.example.ui.theme.LiquidGlassFilterChip(
+                        LiquidGlassFilterChip(
                             selected = isSelected,
                             onClick = { viewModel.setLibraryFilter(filt) },
                             label = label
@@ -230,48 +224,19 @@ private fun LibraryNavigationRow(
     countText: String,
     onClick: () -> Unit
 ) {
-    val isDark = com.example.ui.theme.LocalIsDarkTheme.current
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+    val cardShape = RoundedCornerShape(LiquidGlassDimens.RadiusMedium)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 5.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            Color(0x35FFFFFF),
-                            Color(0x20152032),
-                            Color(0x350A0F1A)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xF5FFFFFF),
-                            Color(0xEBF8FAFC),
-                            Color(0xE0F1F5F9)
-                        )
-                    }
-                )
-            )
-            .border(
-                width = 0.8.dp,
-                brush = Brush.verticalGradient(
-                    if (isDark) {
-                        listOf(
-                            Color(0x52FFFFFF),
-                            Color(0x15FFFFFF),
-                            Color(0x2800E5FF)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xFFFFFFFF),
-                            Color(0x80CBD5E1),
-                            Color(0x4000B4D8)
-                        )
-                    }
-                ),
-                shape = RoundedCornerShape(16.dp)
+            .padding(vertical = 4.dp)
+            .clip(cardShape)
+            .liquidGlass(
+                shape = cardShape,
+                isDark = isDark
             )
             .clickable(onClick = onClick)
     ) {
@@ -284,7 +249,7 @@ private fun LibraryNavigationRow(
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                tint = CyanAccent,
+                tint = palette.primaryGlow,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(14.dp))

@@ -24,22 +24,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cast
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -48,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -59,13 +53,16 @@ import com.example.ui.components.ContinueWatchingCard
 import com.example.ui.components.LongVideoFeedCard
 import com.example.ui.components.ShortVideoShelfCard
 import com.example.ui.components.StoragePermissionHandler
-import com.example.ui.theme.AmoledBlack
-import com.example.ui.theme.BorderDark
-import com.example.ui.theme.CardElevated
-import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.LiquidGlassButton
+import com.example.ui.theme.LiquidGlassCircleButton
+import com.example.ui.theme.LiquidGlassFilterChip
+import com.example.ui.theme.LiquidLensSwitch
+import com.example.ui.theme.LocalIsDarkTheme
+import com.example.ui.theme.LocalLiquidPreset
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.getPaletteForPreset
+import com.example.ui.theme.liquidGlass
 import com.example.viewmodel.HomeCategory
 import com.example.viewmodel.VideoPlayerViewModel
 
@@ -82,6 +79,10 @@ fun HomeScreen(
     val longVideos by viewModel.longVideos.collectAsStateWithLifecycle()
     val allVideos by viewModel.allVideos.collectAsStateWithLifecycle()
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
+
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -104,21 +105,18 @@ fun HomeScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(34.dp)
+                                .shadow(6.dp, CircleShape, spotColor = palette.primaryGlow.copy(alpha = 0.5f))
                                 .clip(CircleShape)
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(Color(0x9900E5FF), Color(0x6600B4D8))
-                                    )
-                                )
-                                .border(1.dp, Color(0xCCFFFFFF), CircleShape),
+                                .background(palette.primaryGlow)
+                                .border(1.2.dp, Color.White.copy(alpha = 0.9f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayCircle,
                                 contentDescription = null,
                                 tint = Color.Black,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
@@ -131,7 +129,7 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    com.example.ui.theme.LiquidGlassCircleButton(
+                    LiquidGlassCircleButton(
                         onClick = { filePickerLauncher.launch(arrayOf("video/*")) },
                         size = 38.dp,
                         modifier = Modifier.testTag("home_pick_file_btn")
@@ -139,7 +137,7 @@ fun HomeScreen(
                         Icon(Icons.Default.FileOpen, contentDescription = "Open video file", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
                     Spacer(modifier = Modifier.width(6.dp))
-                    com.example.ui.theme.LiquidGlassCircleButton(
+                    LiquidGlassCircleButton(
                         onClick = { viewModel.scanVideos() },
                         size = 38.dp,
                         modifier = Modifier.testTag("home_refresh_btn")
@@ -147,7 +145,7 @@ fun HomeScreen(
                         Icon(Icons.Default.Refresh, contentDescription = "Rescan media", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
                     Spacer(modifier = Modifier.width(6.dp))
-                    com.example.ui.theme.LiquidGlassCircleButton(
+                    LiquidGlassCircleButton(
                         onClick = { viewModel.openSearch() },
                         size = 38.dp,
                         modifier = Modifier.testTag("home_search_btn")
@@ -155,9 +153,9 @@ fun HomeScreen(
                         Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    com.example.ui.theme.LiquidShiftLightDarkToggle(
-                        isDark = isDarkTheme,
-                        onToggle = { viewModel.toggleTheme() },
+                    LiquidLensSwitch(
+                        isDarkMode = isDarkTheme,
+                        onModeChanged = { viewModel.toggleTheme() },
                         modifier = Modifier.testTag("home_theme_toggle_btn")
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -191,7 +189,7 @@ fun HomeScreen(
                     )
                     items(categories) { (cat, label) ->
                         val isSelected = homeCategory == cat
-                        com.example.ui.theme.LiquidGlassFilterChip(
+                        LiquidGlassFilterChip(
                             selected = isSelected,
                             onClick = { viewModel.setHomeCategory(cat) },
                             label = label,
@@ -212,7 +210,7 @@ fun HomeScreen(
                 }
             }
 
-            // 2. Continue Watching Shelf (Only if items exist and relevant category)
+            // 2. Continue Watching Shelf
             if (continueWatching.isNotEmpty() && (homeCategory == HomeCategory.ALL || homeCategory == HomeCategory.CONTINUE_WATCHING)) {
                 item {
                     SectionHeader(title = "Continue Watching", onSeeAll = {})
@@ -227,11 +225,11 @@ fun HomeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
-            // 3. Short Videos 9:16 Shelf (Only if items exist and relevant category)
+            // 3. Short Videos 9:16 Shelf
             if (shortVideos.isNotEmpty() && (homeCategory == HomeCategory.ALL || homeCategory == HomeCategory.SHORTS)) {
                 item {
                     SectionHeader(title = "Short Videos", onSeeAll = { viewModel.setHomeCategory(HomeCategory.SHORTS) })
@@ -246,7 +244,7 @@ fun HomeScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
 
@@ -294,6 +292,10 @@ private fun SectionHeader(
     title: String,
     onSeeAll: (() -> Unit)?
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -311,8 +313,8 @@ private fun SectionHeader(
             Text(
                 text = "See All",
                 fontSize = 12.sp,
-                color = CyanAccent,
-                fontWeight = FontWeight.Medium,
+                color = if (isDark) palette.primaryGlow else palette.deepAccent,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.clickable(onClick = onSeeAll)
             )
         }
@@ -324,6 +326,10 @@ private fun EmptyFeedPlaceholder(
     onScan: () -> Unit,
     onPickFile: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -333,10 +339,10 @@ private fun EmptyFeedPlaceholder(
         Icon(
             imageVector = Icons.Default.VideoLibrary,
             contentDescription = null,
-            tint = CyanAccent,
-            modifier = Modifier.size(54.dp)
+            tint = palette.primaryGlow,
+            modifier = Modifier.size(56.dp)
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
         Text(
             text = "No videos yet",
             style = MaterialTheme.typography.titleMedium,
@@ -350,21 +356,20 @@ private fun EmptyFeedPlaceholder(
             color = TextMuted,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            androidx.compose.material3.Button(
+        Spacer(modifier = Modifier.height(20.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            LiquidGlassButton(
+                text = "Scan Storage",
                 onClick = onScan,
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CyanAccent)
-            ) {
-                Text("Scan Storage", color = Color.Black, fontWeight = FontWeight.Bold)
-            }
-            androidx.compose.material3.OutlinedButton(
+                accentColor = palette.primaryGlow,
+                icon = { Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp)) }
+            )
+            LiquidGlassButton(
+                text = "Pick Video",
                 onClick = onPickFile,
-                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
-                border = androidx.compose.foundation.BorderStroke(1.dp, BorderDark)
-            ) {
-                Text("Pick Video", color = TextPrimary, fontWeight = FontWeight.Medium)
-            }
+                accentColor = palette.deepAccent,
+                icon = { Icon(Icons.Default.FileOpen, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp)) }
+            )
         }
     }
 }

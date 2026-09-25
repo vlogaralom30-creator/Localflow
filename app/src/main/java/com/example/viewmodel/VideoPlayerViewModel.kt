@@ -195,10 +195,19 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     private val _defaultOrientation = MutableStateFlow("Auto")
     val defaultOrientation: StateFlow<String> = _defaultOrientation.asStateFlow()
 
-    // Light / Dark Theme state (Persisted in SharedPreferences)
+    // Light / Dark Theme & Liquid Glass Preset state (Persisted in SharedPreferences)
     private val themePrefs = (application as Application).getSharedPreferences("localflow_theme_prefs", Context.MODE_PRIVATE)
     private val _isDarkTheme = MutableStateFlow(themePrefs.getBoolean("is_dark_theme", true))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
+
+    private val savedPresetName = themePrefs.getString("liquid_preset", com.example.ui.theme.LiquidGlassPreset.CYAN.name) ?: com.example.ui.theme.LiquidGlassPreset.CYAN.name
+    private val initialPreset = try {
+        com.example.ui.theme.LiquidGlassPreset.valueOf(savedPresetName)
+    } catch (e: Exception) {
+        com.example.ui.theme.LiquidGlassPreset.CYAN
+    }
+    private val _liquidPreset = MutableStateFlow(initialPreset)
+    val liquidPreset: StateFlow<com.example.ui.theme.LiquidGlassPreset> = _liquidPreset.asStateFlow()
 
     fun toggleTheme() {
         val next = !_isDarkTheme.value
@@ -209,6 +218,11 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     fun setDarkTheme(isDark: Boolean) {
         _isDarkTheme.value = isDark
         themePrefs.edit().putBoolean("is_dark_theme", isDark).apply()
+    }
+
+    fun setLiquidPreset(preset: com.example.ui.theme.LiquidGlassPreset) {
+        _liquidPreset.value = preset
+        themePrefs.edit().putString("liquid_preset", preset.name).apply()
     }
 
     init {

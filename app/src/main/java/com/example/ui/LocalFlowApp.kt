@@ -1,8 +1,8 @@
 package com.example.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.albums.AlbumsScreen
 import com.example.ui.components.AddToAlbumBottomSheet
@@ -26,9 +27,8 @@ import com.example.ui.player.LongVideoPlayerScreen
 import com.example.ui.search.SearchScreen
 import com.example.ui.settings.SettingsScreen
 import com.example.ui.shorts.ShortsScreen
-import androidx.compose.ui.graphics.Color
 import com.example.ui.theme.AmbientLiquidBackdrop
-import com.example.ui.theme.AmoledBlack
+import com.example.ui.theme.LiquidGlassSnackbar
 import com.example.viewmodel.NavTab
 import com.example.viewmodel.VideoPlayerViewModel
 
@@ -44,6 +44,7 @@ fun LocalFlowApp(
     val addToAlbumVideo by viewModel.addToAlbumVideo.collectAsStateWithLifecycle()
     val albums by viewModel.albumsWithCount.collectAsStateWithLifecycle()
     val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
+    val liquidPreset by viewModel.liquidPreset.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var showCreateAlbumDialog by remember { mutableStateOf(false) }
@@ -71,10 +72,21 @@ fun LocalFlowApp(
     }
 
     // 3. Main Scaffold with 5 Bottom Navigation Tabs & Ambient Liquid Glass Backdrop
-    AmbientLiquidBackdrop(modifier = modifier.fillMaxSize()) {
+    AmbientLiquidBackdrop(
+        modifier = modifier.fillMaxSize(),
+        preset = liquidPreset
+    ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.navigationBarsPadding(),
+                    snackbar = { data ->
+                        LiquidGlassSnackbar(message = data.visuals.message)
+                    }
+                )
+            },
             bottomBar = {
                 LocalFlowBottomBar(
                     currentTab = currentTab,

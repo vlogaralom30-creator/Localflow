@@ -1,8 +1,10 @@
 package com.example.ui.albums
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,11 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FolderSpecial
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,8 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -60,12 +61,16 @@ import coil.request.ImageRequest
 import com.example.data.local.AlbumWithCount
 import com.example.ui.components.CreateAlbumDialog
 import com.example.ui.components.LongVideoFeedCard
-import com.example.ui.theme.AmoledBlack
-import com.example.ui.theme.CardDark
-import com.example.ui.theme.CardElevated
-import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.LiquidGlassButton
+import com.example.ui.theme.LiquidGlassCircleButton
+import com.example.ui.theme.LiquidGlassDimens
+import com.example.ui.theme.LiquidGlassMotion
+import com.example.ui.theme.LocalIsDarkTheme
+import com.example.ui.theme.LocalLiquidPreset
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
+import com.example.ui.theme.getPaletteForPreset
+import com.example.ui.theme.liquidGlass
 import com.example.viewmodel.VideoPlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,6 +82,10 @@ fun AlbumsScreen(
     val albums by viewModel.albumsWithCount.collectAsStateWithLifecycle()
     val selectedAlbum by viewModel.selectedAlbum.collectAsStateWithLifecycle()
     val albumVideos by viewModel.videosForSelectedAlbum.collectAsStateWithLifecycle()
+    val preset by viewModel.liquidPreset.collectAsStateWithLifecycle()
+
+    val isDark = LocalIsDarkTheme.current
+    val palette = getPaletteForPreset(preset)
 
     var showCreateDialog by remember { mutableStateOf(false) }
 
@@ -112,8 +121,12 @@ fun AlbumsScreen(
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = { viewModel.selectAlbum(null) }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                        LiquidGlassCircleButton(
+                            onClick = { viewModel.selectAlbum(null) },
+                            size = 38.dp,
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary, modifier = Modifier.size(18.dp))
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -177,18 +190,20 @@ fun AlbumsScreen(
                     )
                 },
                 actions = {
-                    IconButton(
+                    LiquidGlassCircleButton(
                         onClick = { showCreateDialog = true },
+                        size = 38.dp,
                         modifier = Modifier.testTag("create_album_header_btn")
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Create Album", tint = CyanAccent)
+                        Icon(Icons.Default.Add, contentDescription = "Create Album", tint = palette.primaryGlow, modifier = Modifier.size(20.dp))
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
         floatingActionButton = {
-            com.example.ui.theme.LiquidGlassButton(
+            LiquidGlassButton(
                 onClick = { showCreateDialog = true },
                 modifier = Modifier.size(56.dp).testTag("create_album_fab"),
                 shape = CircleShape,
@@ -224,41 +239,43 @@ private fun AlbumCard(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val isDark = com.example.ui.theme.LocalIsDarkTheme.current
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) LiquidGlassMotion.SubtlePressScale else 1.0f,
+        animationSpec = LiquidGlassMotion.SpringBouncy,
+        label = "album_press_scale"
+    )
+
+    val cardShape = RoundedCornerShape(LiquidGlassDimens.RadiusCard)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            Color(0x38FFFFFF),
-                            Color(0x22162234),
-                            Color(0x400C121E)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xF5FFFFFF),
-                            Color(0xEBF8FAFC),
-                            Color(0xE0F1F5F9)
-                        )
-                    }
-                )
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = if (isDark) 8.dp else 4.dp,
+                shape = cardShape,
+                spotColor = palette.primaryGlow.copy(alpha = 0.3f)
             )
-            .border(
-                width = 1.dp,
-                brush = Brush.verticalGradient(
-                    if (isDark) {
-                        listOf(Color(0x59FFFFFF), Color(0x1AFFFFFF), Color(0x3300E5FF))
-                    } else {
-                        listOf(Color(0xFFFFFFFF), Color(0x80CBD5E1), Color(0x4000B4D8))
-                    }
-                ),
-                shape = RoundedCornerShape(20.dp)
+            .clip(cardShape)
+            .liquidGlass(
+                shape = cardShape,
+                isDark = isDark,
+                borderColor = if (isDark) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.85f)
             )
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .testTag("album_card_${album.id}")
     ) {
         Column {
@@ -266,7 +283,7 @@ private fun AlbumCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .clip(RoundedCornerShape(topStart = LiquidGlassDimens.RadiusCard, topEnd = LiquidGlassDimens.RadiusCard))
                     .background(Color(0x33101826))
             ) {
                 if (album.coverUri != null) {
@@ -285,7 +302,7 @@ private fun AlbumCard(
                             .fillMaxSize()
                             .background(
                                 Brush.radialGradient(
-                                    colors = listOf(CyanAccent.copy(alpha = 0.3f), CardElevated)
+                                    colors = listOf(palette.primaryGlow.copy(alpha = 0.35f), Color(0x33101826))
                                 )
                             ),
                         contentAlignment = Alignment.Center
@@ -293,7 +310,7 @@ private fun AlbumCard(
                         Icon(
                             imageVector = Icons.Default.FolderSpecial,
                             contentDescription = null,
-                            tint = CyanAccent,
+                            tint = palette.primaryGlow,
                             modifier = Modifier.size(48.dp)
                         )
                     }
@@ -305,8 +322,8 @@ private fun AlbumCard(
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                                startY = 120f
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
+                                startY = 100f
                             )
                         )
                 )
@@ -326,7 +343,8 @@ private fun AlbumCard(
                     Text(
                         text = "${album.videoCount} videos",
                         fontSize = 11.sp,
-                        color = CyanAccent
+                        color = palette.primaryGlow,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }

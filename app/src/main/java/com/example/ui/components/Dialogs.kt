@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,22 +18,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderSpecial
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -43,6 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -50,11 +48,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.AlbumWithCount
 import com.example.data.local.VideoEntity
-import com.example.ui.theme.CardElevated
-import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.ErrorRed
+import com.example.ui.theme.LiquidGlassButton
+import com.example.ui.theme.LiquidGlassDimens
+import com.example.ui.theme.LocalIsDarkTheme
+import com.example.ui.theme.LocalLiquidPreset
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
+import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.getPaletteForPreset
+import com.example.ui.theme.liquidGlass
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,11 +73,16 @@ fun VideoDetailsBottomSheet(
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        containerColor = if (isDark) Color(0xF00D0F14) else Color(0xF0FFFFFF),
+        scrimColor = Color.Black.copy(alpha = 0.6f)
     ) {
         Column(
             modifier = Modifier
@@ -104,25 +112,24 @@ fun VideoDetailsBottomSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Quick Actions
+            // Quick Actions with Liquid Glass Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Button(
+                LiquidGlassButton(
+                    text = "Play",
                     onClick = {
                         onDismiss()
                         onPlay()
                     },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = CyanAccent)
-                ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null, tint = androidx.compose.ui.graphics.Color.Black)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Play", color = androidx.compose.ui.graphics.Color.Black)
-                }
+                    accentColor = palette.primaryGlow,
+                    icon = { Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp)) }
+                )
 
-                OutlinedButton(
+                LiquidGlassButton(
+                    text = "Share",
                     onClick = {
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = video.mimeType ?: "video/*"
@@ -131,15 +138,13 @@ fun VideoDetailsBottomSheet(
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Share Video"))
                     },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Share")
-                }
+                    modifier = Modifier.weight(1f),
+                    accentColor = palette.deepAccent,
+                    icon = { Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp)) }
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
@@ -172,11 +177,16 @@ fun AddToAlbumBottomSheet(
     onAlbumSelected: (Long, String) -> Unit,
     onCreateNewAlbum: () -> Unit
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
     val sheetState = rememberModalBottomSheetState()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        containerColor = if (isDark) Color(0xF00D0F14) else Color(0xF0FFFFFF),
+        scrimColor = Color.Black.copy(alpha = 0.6f)
     ) {
         Column(
             modifier = Modifier
@@ -196,9 +206,9 @@ fun AddToAlbumBottomSheet(
                     color = TextPrimary
                 )
                 TextButton(onClick = onCreateNewAlbum) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = CyanAccent, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Add, contentDescription = null, tint = palette.primaryGlow, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("New Album", color = CyanAccent)
+                    Text("New Album", color = palette.primaryGlow, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -214,24 +224,27 @@ fun AddToAlbumBottomSheet(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(albums) { album ->
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = CardElevated,
+                        val itemShape = RoundedCornerShape(LiquidGlassDimens.RadiusSmall)
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
+                                .clip(itemShape)
+                                .liquidGlass(
+                                    shape = itemShape,
+                                    isDark = isDark
+                                )
                                 .clickable { onAlbumSelected(album.id, album.name) }
+                                .padding(14.dp)
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.FolderSpecial,
                                     contentDescription = null,
-                                    tint = CyanAccent,
+                                    tint = palette.primaryGlow,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -251,7 +264,7 @@ fun AddToAlbumBottomSheet(
                                 Icon(
                                     imageVector = Icons.Default.PlaylistAdd,
                                     contentDescription = "Add",
-                                    tint = CyanAccent
+                                    tint = palette.primaryGlow
                                 )
                             }
                         }
@@ -264,46 +277,82 @@ fun AddToAlbumBottomSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateAlbumDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
     var albumName by remember { mutableStateOf("") }
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+    val dialogShape = RoundedCornerShape(LiquidGlassDimens.RadiusCard)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Create New Album", color = TextPrimary, fontWeight = FontWeight.Bold) },
-        text = {
-            OutlinedTextField(
-                value = albumName,
-                onValueChange = { albumName = it },
-                label = { Text("Album Name") },
-                placeholder = { Text("e.g. Movies, Anime, Music...") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag("new_album_input")
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (albumName.isNotBlank()) {
-                        onConfirm(albumName.trim())
+    BasicAlertDialog(
+        onDismissRequest = onDismiss
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(dialogShape)
+                .liquidGlass(
+                    shape = dialogShape,
+                    isDark = isDark,
+                    accentGlow = palette.primaryGlow
+                )
+                .padding(24.dp)
+        ) {
+            Column {
+                Text(
+                    text = "Create New Album",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                OutlinedTextField(
+                    value = albumName,
+                    onValueChange = { albumName = it },
+                    label = { Text("Album Name") },
+                    placeholder = { Text("e.g. Movies, Anime, Music...") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = palette.primaryGlow,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("new_album_input")
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = TextMuted)
                     }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = CyanAccent)
-            ) {
-                Text("Create", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextMuted)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    LiquidGlassButton(
+                        text = "Create",
+                        onClick = {
+                            if (albumName.isNotBlank()) {
+                                onConfirm(albumName.trim())
+                            }
+                        },
+                        accentColor = palette.primaryGlow
+                    )
+                }
             }
         }
-    )
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RenameVideoDialog(
     initialTitle: String,
@@ -311,68 +360,127 @@ fun RenameVideoDialog(
     onConfirm: (String) -> Unit
 ) {
     var title by remember { mutableStateOf(initialTitle) }
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+    val dialogShape = RoundedCornerShape(LiquidGlassDimens.RadiusCard)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Rename Video", color = TextPrimary, fontWeight = FontWeight.Bold) },
-        text = {
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Video Title") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag("rename_video_input")
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (title.isNotBlank()) {
-                        onConfirm(title.trim())
+    BasicAlertDialog(
+        onDismissRequest = onDismiss
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(dialogShape)
+                .liquidGlass(
+                    shape = dialogShape,
+                    isDark = isDark,
+                    accentGlow = palette.primaryGlow
+                )
+                .padding(24.dp)
+        ) {
+            Column {
+                Text(
+                    text = "Rename Video",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Video Title") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = palette.primaryGlow,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("rename_video_input")
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = TextMuted)
                     }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = CyanAccent)
-            ) {
-                Text("Save", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextMuted)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    LiquidGlassButton(
+                        text = "Save",
+                        onClick = {
+                            if (title.isNotBlank()) {
+                                onConfirm(title.trim())
+                            }
+                        },
+                        accentColor = palette.primaryGlow
+                    )
+                }
             }
         }
-    )
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeleteConfirmationDialog(
     videoTitle: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Remove Video", color = TextPrimary, fontWeight = FontWeight.Bold) },
-        text = {
-            Text(
-                text = "Are you sure you want to remove \"$videoTitle\" from LocalFlow?",
-                color = TextSecondary,
-                fontSize = 14.sp
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
-            ) {
-                Text("Remove", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextMuted)
+    val isDark = LocalIsDarkTheme.current
+    val dialogShape = RoundedCornerShape(LiquidGlassDimens.RadiusCard)
+
+    BasicAlertDialog(
+        onDismissRequest = onDismiss
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(dialogShape)
+                .liquidGlass(
+                    shape = dialogShape,
+                    isDark = isDark,
+                    accentGlow = ErrorRed
+                )
+                .padding(24.dp)
+        ) {
+            Column {
+                Text(
+                    text = "Remove Video",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Are you sure you want to remove \"$videoTitle\" from LocalFlow?",
+                    color = TextSecondary,
+                    fontSize = 14.sp
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = TextMuted)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    LiquidGlassButton(
+                        text = "Remove",
+                        onClick = onConfirm,
+                        accentColor = ErrorRed
+                    )
+                }
             }
         }
-    )
+    }
 }
-

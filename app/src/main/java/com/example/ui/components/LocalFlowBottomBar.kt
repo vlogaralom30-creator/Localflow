@@ -1,11 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -38,19 +34,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.CyanAccent
-import com.example.ui.theme.CyanAccentLight
-import com.example.ui.theme.LiquidCyanAccent
+import com.example.ui.theme.LiquidGlassDimens
+import com.example.ui.theme.LiquidGlassMotion
 import com.example.ui.theme.LocalIsDarkTheme
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextMutedLight
+import com.example.ui.theme.LocalLiquidPreset
+import com.example.ui.theme.getPaletteForPreset
+import com.example.ui.theme.liquidGlass
 import com.example.viewmodel.NavTab
 
 @Composable
@@ -60,6 +55,9 @@ fun LocalFlowBottomBar(
     modifier: Modifier = Modifier
 ) {
     val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
     val items = listOf(
         Triple(NavTab.HOME, "Home", Pair(Icons.Filled.Home, Icons.Outlined.Home)),
         Triple(NavTab.SHORTS, "Shorts", Pair(Icons.Filled.PlayCircle, Icons.Outlined.PlayCircle)),
@@ -72,56 +70,28 @@ fun LocalFlowBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 14.dp, vertical = 6.dp)
             .testTag("bottom_nav_bar"),
         contentAlignment = Alignment.Center
     ) {
         // Floating Frosted Glass Capsule Bar
+        val capsuleShape = RoundedCornerShape(LiquidGlassDimens.RadiusCapsule)
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(
                     elevation = if (isDark) 16.dp else 8.dp,
-                    shape = RoundedCornerShape(32.dp),
-                    spotColor = if (isDark) Color(0x6600E5FF) else Color(0x3300B4D8),
-                    ambientColor = if (isDark) Color(0x40000000) else Color(0x1A000000)
+                    shape = capsuleShape,
+                    spotColor = if (isDark) palette.primaryGlow.copy(alpha = 0.45f) else Color(0x30000000),
+                    ambientColor = if (isDark) Color(0x40000000) else Color(0x18000000)
                 )
-                .clip(RoundedCornerShape(32.dp))
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = if (isDark) {
-                            listOf(
-                                Color(0x38FFFFFF),
-                                Color(0x2E131E30),
-                                Color(0x520A0F1A)
-                            )
-                        } else {
-                            listOf(
-                                Color(0xF2FFFFFF),
-                                Color(0xE6F8FAFC),
-                                Color(0xD9F1F5F9)
-                            )
-                        }
-                    )
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = if (isDark) {
-                            listOf(
-                                Color(0x7AFFFFFF),
-                                Color(0x22FFFFFF),
-                                Color(0x4400E5FF)
-                            )
-                        } else {
-                            listOf(
-                                Color(0xFFFFFFFF),
-                                Color(0x80CBD5E1),
-                                Color(0x4000B4D8)
-                            )
-                        }
-                    ),
-                    shape = RoundedCornerShape(32.dp)
+                .clip(capsuleShape)
+                .liquidGlass(
+                    shape = capsuleShape,
+                    isDark = isDark,
+                    accentGlow = palette.primaryGlow,
+                    borderColor = if (isDark) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.9f)
                 )
                 .padding(horizontal = 6.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceAround,
@@ -133,22 +103,21 @@ fun LocalFlowBottomBar(
                 val isPressed by interactionSource.collectIsPressedAsState()
 
                 val scale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.88f else 1.0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
+                    targetValue = if (isPressed) LiquidGlassMotion.PressScaleFactor else 1.0f,
+                    animationSpec = LiquidGlassMotion.SpringBouncy,
                     label = "tab_scale_${tab.name}"
                 )
 
-                val selectedColor = if (isDark) LiquidCyanAccent else CyanAccentLight
-                val unselectedColor = if (isDark) TextMuted else TextMutedLight
+                val selectedContentColor = if (isDark) palette.primaryGlow else palette.deepAccent
+                val unselectedContentColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
 
                 val contentColor by animateColorAsState(
-                    targetValue = if (isSelected) selectedColor else unselectedColor,
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    targetValue = if (isSelected) selectedContentColor else unselectedContentColor,
+                    animationSpec = androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
                     label = "tab_color_${tab.name}"
                 )
+
+                val tabPillShape = RoundedCornerShape(LiquidGlassDimens.RadiusPill)
 
                 Box(
                     modifier = Modifier
@@ -157,42 +126,16 @@ fun LocalFlowBottomBar(
                             scaleX = scale
                             scaleY = scale
                         }
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(
-                            brush = if (isSelected) {
-                                if (isDark) {
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color(0x4D00E5FF),
-                                            Color(0x2400E5FF),
-                                            Color(0x150077B6)
-                                        )
-                                    )
-                                } else {
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color(0x3800B4D8),
-                                            Color(0x1F00B4D8),
-                                            Color(0x1038BDF8)
-                                        )
-                                    )
-                                }
-                            } else {
-                                Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
-                            }
-                        )
+                        .clip(tabPillShape)
                         .then(
                             if (isSelected) {
-                                Modifier.border(
-                                    width = 1.dp,
-                                    brush = Brush.verticalGradient(
-                                        if (isDark) {
-                                            listOf(Color(0x80FFFFFF), Color(0x4D00E5FF))
-                                        } else {
-                                            listOf(Color(0xFFFFFFFF), Color(0x8000B4D8))
-                                        }
-                                    ),
-                                    shape = RoundedCornerShape(22.dp)
+                                Modifier.liquidGlass(
+                                    shape = tabPillShape,
+                                    isDark = isDark,
+                                    accentGlow = palette.primaryGlow,
+                                    glassAlpha = if (isDark) 0.25f else 0.4f,
+                                    borderColor = if (isDark) Color.White.copy(alpha = 0.55f) else palette.primaryGlow.copy(alpha = 0.7f),
+                                    borderWidth = 1.2.dp
                                 )
                             } else {
                                 Modifier
@@ -203,8 +146,7 @@ fun LocalFlowBottomBar(
                             indication = null,
                             onClick = { onTabSelected(tab) }
                         )
-                        .padding(vertical = 8.dp)
-                        .testTag("nav_tab_${tab.name.lowercase()}"),
+                        .padding(vertical = 7.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -215,7 +157,7 @@ fun LocalFlowBottomBar(
                             imageVector = if (isSelected) icons.first else icons.second,
                             contentDescription = label,
                             tint = contentColor,
-                            modifier = Modifier.size(23.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                         Text(
                             text = label,

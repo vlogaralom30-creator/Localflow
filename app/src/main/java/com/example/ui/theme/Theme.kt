@@ -56,48 +56,48 @@ val SurfaceDark: Color
     @ReadOnlyComposable
     get() = if (LocalIsDarkTheme.current) RawSurfaceDark else SurfaceLight
 
-private val NaxxivoDarkColorScheme = darkColorScheme(
-    primary = CyanAccent,
+private fun getDarkColorScheme(palette: LiquidPalette) = darkColorScheme(
+    primary = palette.primaryGlow,
     onPrimary = AmoledBlack,
     primaryContainer = RawCardElevated,
-    onPrimaryContainer = CyanAccent,
-    secondary = BlueAccent,
+    onPrimaryContainer = palette.primaryGlow,
+    secondary = palette.deepAccent,
     onSecondary = TextPrimaryDark,
     secondaryContainer = RawCardDark,
     onSecondaryContainer = TextPrimaryDark,
     tertiary = SuccessGreen,
     onTertiary = AmoledBlack,
-    background = AmoledBlack,
+    background = DarkBaseBackground,
     onBackground = TextPrimaryDark,
     surface = RawSurfaceDark,
     onSurface = TextPrimaryDark,
     surfaceVariant = RawCardDark,
     onSurfaceVariant = TextSecondaryDark,
-    surfaceTint = CyanAccent,
+    surfaceTint = palette.primaryGlow,
     outline = RawBorderDark,
     outlineVariant = RawDividerDark,
     error = ErrorRed,
     onError = TextPrimaryDark
 )
 
-private val NaxxivoLightColorScheme = lightColorScheme(
-    primary = CyanAccentLight,
+private fun getLightColorScheme(palette: LiquidPalette) = lightColorScheme(
+    primary = palette.deepAccent,
     onPrimary = Color.White,
     primaryContainer = Color(0xFFE0F7FA),
     onPrimaryContainer = Color(0xFF006064),
-    secondary = BlueAccentLight,
+    secondary = palette.primaryGlow,
     onSecondary = Color.White,
     secondaryContainer = Color(0xFFEFF6FF),
     onSecondaryContainer = Color(0xFF1E3A8A),
     tertiary = SuccessGreen,
     onTertiary = Color.White,
-    background = CanvasLight,
+    background = LightBaseBackground,
     onBackground = TextPrimaryLight,
     surface = SurfaceLight,
     onSurface = TextPrimaryLight,
     surfaceVariant = Color(0xFFE2E8F0),
     onSurfaceVariant = TextSecondaryLight,
-    surfaceTint = CyanAccentLight,
+    surfaceTint = palette.deepAccent,
     outline = BorderLightMode,
     outlineVariant = DividerLightMode,
     error = ErrorRed,
@@ -107,24 +107,29 @@ private val NaxxivoLightColorScheme = lightColorScheme(
 @Composable
 fun NaxxivoTheme(
     darkTheme: Boolean = true,
+    preset: LiquidGlassPreset = LiquidGlassPreset.CYAN,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) NaxxivoDarkColorScheme else NaxxivoLightColorScheme
+    val palette = getPaletteForPreset(preset)
+    val colorScheme = if (darkTheme) getDarkColorScheme(palette) else getLightColorScheme(palette)
     val view = LocalView.current
+
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
-                val bgArgb = (if (darkTheme) AmoledBlack else CanvasLight).toArgb()
-                window.statusBarColor = bgArgb
-                window.navigationBarColor = bgArgb
+                window.statusBarColor = android.graphics.Color.TRANSPARENT
+                window.navigationBarColor = android.graphics.Color.TRANSPARENT
                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
                 WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
             }
         }
     }
 
-    CompositionLocalProvider(LocalIsDarkTheme provides darkTheme) {
+    CompositionLocalProvider(
+        LocalIsDarkTheme provides darkTheme,
+        LocalLiquidPreset provides preset
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

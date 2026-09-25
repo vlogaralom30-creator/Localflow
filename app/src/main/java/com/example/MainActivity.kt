@@ -24,7 +24,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
-            NaxxivoTheme(darkTheme = isDarkTheme) {
+            val liquidPreset by viewModel.liquidPreset.collectAsStateWithLifecycle()
+
+            NaxxivoTheme(darkTheme = isDarkTheme, preset = liquidPreset) {
                 LocalFlowApp(viewModel = viewModel)
             }
         }

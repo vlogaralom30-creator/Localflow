@@ -14,13 +14,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -28,14 +31,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,87 +60,194 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// ============================================================================
-// 1. DESIGN TOKENS & COLOR PALETTE (From Integration Guide)
-// ============================================================================
+val LocalLiquidPreset = compositionLocalOf { LiquidGlassPreset.CYAN }
 
-// Dark Liquid AMOLED Theme
-val DarkBaseBackground = Color(0xFF0D0F14) // Deep Space Dark
-val DarkAmoledBlack = Color(0xFF000000)
-val DarkGlassCanvas = Color(0xFF0D0F14)
+// Backward compatibility color aliases
+val DarkBaseBackground = LiquidGlassColors.DarkBaseBackground
+val DarkAmoledBlack = LiquidGlassColors.DarkAmoledBlack
+val DarkGlassCanvas = LiquidGlassColors.DarkBaseBackground
 val DarkGlassPanel = Color(0x33121B2A)
 val DarkGlassBorder = Color(0x40FFFFFF)
 
-// Light Crystal Glass Theme
-val LightBaseBackground = Color(0xFFEBF1F5) // Soft Ice White
-val LightGlassCanvas = Color(0xFFEBF1F5)
+val LightBaseBackground = LiquidGlassColors.LightBaseBackground
+val LightGlassCanvas = LiquidGlassColors.LightBaseBackground
 val LightGlassPanel = Color(0xF2FFFFFF)
 val LightGlassBorder = Color(0x90CBD5E1)
 
-// Liquid Glow Accents
-val CyanLiquidGlow = Color(0xFF00E5FF)
-val CyanLiquidDeep = Color(0xFF0284C7)
-val PurpleGlassGlow = Color(0xFFA855F7)
-val PurpleGlassDeep = Color(0xFF7E22CE)
+val CyanLiquidGlow = LiquidGlassColors.CyanGlow
+val CyanLiquidDeep = LiquidGlassColors.CyanDeep
+val PurpleGlassGlow = LiquidGlassColors.PurpleGlow
+val PurpleGlassDeep = LiquidGlassColors.PurpleDeep
 
 // ============================================================================
-// 2. CUSTOM LIQUID GLASS MODIFIER (Section 2.A of Integration Guide)
+// 1. ADVANCED LIQUID GLASS MODIFIER
 // ============================================================================
 
+/**
+ * Applies multi-layer liquid glass styling:
+ * - Semi-transparent gradient glass surface
+ * - Specular rim highlight (refraction edge)
+ * - Subtle inner specular highlight
+ */
 fun Modifier.liquidGlass(
     shape: Shape,
     isDark: Boolean = true,
-    borderColor: Color = if (isDark) Color.White.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.8f),
-    glassAlpha: Float = if (isDark) 0.15f else 0.45f
+    borderColor: Color = if (isDark) Color.White.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.85f),
+    glassAlpha: Float = if (isDark) 0.14f else 0.55f,
+    accentGlow: Color? = null,
+    borderWidth: Dp = LiquidGlassDimens.BorderWidthStandard
 ): Modifier = this.drawBehind {
     val outline = shape.createOutline(size, layoutDirection, this)
 
-    // Glass Surface Background Gradient
+    // 1. Semi-transparent glass surface background gradient
     val glassBg = Brush.linearGradient(
         colors = if (isDark) {
             listOf(
                 Color.White.copy(alpha = glassAlpha),
-                Color.White.copy(alpha = glassAlpha * 0.3f)
+                Color(0xFF0F172A).copy(alpha = glassAlpha * 0.7f),
+                Color(0xFF080C14).copy(alpha = glassAlpha * 0.35f)
             )
         } else {
             listOf(
                 Color.White.copy(alpha = glassAlpha),
-                Color(0xFFE2E8F0).copy(alpha = glassAlpha * 0.4f)
+                Color(0xFFF8FAFC).copy(alpha = glassAlpha * 0.85f),
+                Color(0xFFE2E8F0).copy(alpha = glassAlpha * 0.45f)
             )
-        }
+        },
+        start = Offset(0f, 0f),
+        end = Offset(size.width, size.height)
     )
 
-    // Specular Rim Highlight (Refraction edge)
+    // Optional subtle accent wash
+    if (accentGlow != null) {
+        val accentWash = Brush.radialGradient(
+            colors = listOf(
+                accentGlow.copy(alpha = if (isDark) 0.16f else 0.10f),
+                Color.Transparent
+            ),
+            center = Offset(size.width * 0.8f, size.height * 0.2f),
+            radius = size.width * 0.8f
+        )
+        drawOutline(outline = outline, brush = accentWash)
+    }
+
+    drawOutline(outline = outline, brush = glassBg)
+
+    // 2. Specular Top/Rim Highlight Gradient
     val specularRim = Brush.verticalGradient(
         colors = listOf(
             borderColor,
-            borderColor.copy(alpha = 0.05f)
+            borderColor.copy(alpha = 0.15f),
+            accentGlow?.copy(alpha = 0.35f) ?: borderColor.copy(alpha = 0.05f)
         )
     )
 
     drawOutline(
         outline = outline,
-        brush = glassBg
-    )
-
-    drawOutline(
-        outline = outline,
         brush = specularRim,
-        style = Stroke(width = 1.5.dp.toPx())
+        style = Stroke(width = borderWidth.toPx())
     )
 }
 
 // ============================================================================
-// 3. LIQUID LENS TOGGLE SWITCH (Section 2.B of Integration Guide & Image #3)
+// 2. REUSABLE LIQUID GLASS CONTAINERS (Surface, Card)
+// ============================================================================
+
+@Composable
+fun LiquidGlassSurface(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(LiquidGlassDimens.RadiusCard),
+    elevation: Dp = 8.dp,
+    accentGlow: Color? = null,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+    val glow = accentGlow ?: palette.primaryGlow
+
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = elevation,
+                shape = shape,
+                spotColor = if (isDark) glow.copy(alpha = 0.35f) else Color(0x25000000),
+                ambientColor = if (isDark) Color(0x35000000) else Color(0x15000000)
+            )
+            .clip(shape)
+            .liquidGlass(
+                shape = shape,
+                isDark = isDark,
+                accentGlow = glow,
+                borderColor = if (isDark) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.9f)
+            ),
+        content = content
+    )
+}
+
+@Composable
+fun LiquidGlassCard(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(LiquidGlassDimens.RadiusCard),
+    onClick: (() -> Unit)? = null,
+    elevation: Dp = 6.dp,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val isDark = LocalIsDarkTheme.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && onClick != null) LiquidGlassMotion.PressScaleFactor else 1.0f,
+        animationSpec = LiquidGlassMotion.SpringBouncy,
+        label = "card_scale"
+    )
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = elevation,
+                shape = shape,
+                spotColor = if (isDark) Color(0x3500E5FF) else Color(0x20000000)
+            )
+            .clip(shape)
+            .liquidGlass(
+                shape = shape,
+                isDark = isDark,
+                borderColor = if (isDark) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.85f)
+            )
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick
+                    )
+                } else {
+                    Modifier
+                }
+            ),
+        content = content
+    )
+}
+
+// ============================================================================
+// 3. LIQUID LENS TOGGLE SWITCH
 // ============================================================================
 
 @Composable
@@ -136,9 +256,9 @@ fun LiquidLensSwitch(
     onModeChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val trackWidth = 112.dp
-    val trackHeight = 42.dp
-    val lensSize = 36.dp
+    val trackWidth = 118.dp
+    val trackHeight = 44.dp
+    val lensSize = 38.dp
 
     val lensOffset by animateDpAsState(
         targetValue = if (isDarkMode) (trackWidth - lensSize - 3.dp) else 3.dp,
@@ -149,18 +269,25 @@ fun LiquidLensSwitch(
         label = "LensSlideAnimation"
     )
 
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
     Box(
         modifier = modifier
             .width(trackWidth)
             .height(trackHeight)
             .shadow(
                 elevation = if (isDarkMode) 8.dp else 4.dp,
-                shape = RoundedCornerShape(21.dp),
-                spotColor = if (isDarkMode) Color(0x6000E5FF) else Color(0x33000000),
+                shape = RoundedCornerShape(22.dp),
+                spotColor = if (isDarkMode) palette.primaryGlow.copy(alpha = 0.45f) else Color(0x30000000),
                 ambientColor = Color(0x20000000)
             )
-            .clip(RoundedCornerShape(21.dp))
-            .liquidGlass(RoundedCornerShape(21.dp), isDark = isDarkMode)
+            .clip(RoundedCornerShape(22.dp))
+            .liquidGlass(
+                shape = RoundedCornerShape(22.dp),
+                isDark = isDarkMode,
+                accentGlow = palette.primaryGlow
+            )
             .clickable { onModeChanged(!isDarkMode) }
             .padding(3.dp)
             .testTag("liquid_shift_theme_toggle"),
@@ -176,13 +303,13 @@ fun LiquidLensSwitch(
         ) {
             Text(
                 text = "Light",
-                color = if (!isDarkMode) Color(0xFF0F172A) else Color.White.copy(alpha = 0.4f),
+                color = if (!isDarkMode) Color(0xFF0F172A) else Color.White.copy(alpha = 0.45f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "Dark",
-                color = if (isDarkMode) Color.White else Color(0xFF0F172A).copy(alpha = 0.4f),
+                color = if (isDarkMode) Color.White else Color(0xFF0F172A).copy(alpha = 0.45f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -194,33 +321,33 @@ fun LiquidLensSwitch(
                 .offset(x = lensOffset)
                 .size(lensSize)
                 .shadow(
-                    elevation = 6.dp,
+                    elevation = 8.dp,
                     shape = CircleShape,
-                    spotColor = if (isDarkMode) Color(0x8000E5FF) else Color(0x40000000)
+                    spotColor = if (isDarkMode) palette.primaryGlow.copy(alpha = 0.6f) else Color(0x40000000)
                 )
                 .clip(CircleShape)
                 .background(
                     brush = Brush.radialGradient(
                         colors = if (isDarkMode) {
                             listOf(
-                                Color(0x7038BDF8),
-                                Color(0x350284C7),
-                                Color(0x20000000)
+                                palette.primaryGlow.copy(alpha = 0.5f),
+                                palette.deepAccent.copy(alpha = 0.35f),
+                                Color(0x25000000)
                             )
                         } else {
                             listOf(
                                 Color(0xFFFFFFFF),
-                                Color(0xE0F8FAFC),
-                                Color(0xB0CBD5E1)
+                                Color(0xF2F8FAFC),
+                                Color(0xC0CBD5E1)
                             )
                         },
-                        radius = 40f
+                        radius = 42f
                     )
                 )
                 .liquidGlass(
                     shape = CircleShape,
                     isDark = isDarkMode,
-                    borderColor = if (isDarkMode) Color.White.copy(alpha = 0.9f) else Color.White
+                    borderColor = if (isDarkMode) Color.White.copy(alpha = 0.95f) else Color.White
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -229,21 +356,21 @@ fun LiquidLensSwitch(
                     imageVector = Icons.Default.DarkMode,
                     contentDescription = "Dark Mode Active",
                     tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(17.dp)
                 )
             } else {
                 Icon(
                     imageVector = Icons.Default.LightMode,
                     contentDescription = "Light Mode Active",
                     tint = Color(0xFFD97706),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(17.dp)
                 )
             }
         }
     }
 }
 
-// Alias for compatibility
+// Alias for backwards compatibility
 @Composable
 fun LiquidShiftLightDarkToggle(
     isDark: Boolean,
@@ -258,7 +385,7 @@ fun LiquidShiftLightDarkToggle(
 }
 
 // ============================================================================
-// 4. SPECULAR GLASS BUTTONS (Section 2.C of Integration Guide & Images #1, #2)
+// 4. SPECULAR GLASS BUTTONS
 // ============================================================================
 
 @Composable
@@ -266,19 +393,20 @@ fun LiquidGlassButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    accentColor: Color = CyanLiquidGlow,
+    accentColor: Color? = null,
     icon: (@Composable () -> Unit)? = null
 ) {
     val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+    val activeAccent = accentColor ?: palette.primaryGlow
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        targetValue = if (isPressed) LiquidGlassMotion.PressScaleFactor else 1.0f,
+        animationSpec = LiquidGlassMotion.SpringBouncy,
         label = "btn_press_scale"
     )
 
@@ -291,26 +419,30 @@ fun LiquidGlassButton(
             .height(48.dp)
             .shadow(
                 elevation = 6.dp,
-                shape = RoundedCornerShape(24.dp),
-                spotColor = accentColor.copy(alpha = 0.4f)
+                shape = RoundedCornerShape(LiquidGlassDimens.RadiusPill),
+                spotColor = activeAccent.copy(alpha = 0.45f)
             )
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(LiquidGlassDimens.RadiusPill))
             .background(
                 brush = Brush.horizontalGradient(
                     colors = if (isDark) {
                         listOf(
-                            accentColor.copy(alpha = 0.35f),
-                            accentColor.copy(alpha = 0.15f)
+                            activeAccent.copy(alpha = 0.4f),
+                            activeAccent.copy(alpha = 0.18f)
                         )
                     } else {
                         listOf(
-                            Color(0xFF00B4D8).copy(alpha = 0.85f),
-                            Color(0xFF0284C7).copy(alpha = 0.75f)
+                            activeAccent.copy(alpha = 0.85f),
+                            palette.deepAccent.copy(alpha = 0.75f)
                         )
                     }
                 )
             )
-            .liquidGlass(RoundedCornerShape(24.dp), isDark = isDark, borderColor = accentColor.copy(alpha = 0.7f))
+            .liquidGlass(
+                shape = RoundedCornerShape(LiquidGlassDimens.RadiusPill),
+                isDark = isDark,
+                borderColor = activeAccent.copy(alpha = 0.75f)
+            )
             .clickable(interactionSource = interactionSource, indication = null) { onClick() }
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center
@@ -340,15 +472,15 @@ fun LiquidGlassButton(
     content: @Composable BoxScope.() -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        targetValue = if (isPressed) LiquidGlassMotion.PressScaleFactor else 1.0f,
+        animationSpec = LiquidGlassMotion.SpringBouncy,
         label = "liquid_btn_scale"
     )
 
@@ -362,9 +494,9 @@ fun LiquidGlassButton(
                 elevation = if (isProminent) 10.dp else 4.dp,
                 shape = shape,
                 spotColor = if (isProminent) {
-                    if (isDark) CyanLiquidGlow.copy(alpha = 0.5f) else Color(0x400284C7)
+                    if (isDark) palette.primaryGlow.copy(alpha = 0.55f) else palette.deepAccent.copy(alpha = 0.4f)
                 } else {
-                    if (isDark) CyanLiquidGlow.copy(alpha = 0.25f) else Color(0x20000000)
+                    if (isDark) palette.primaryGlow.copy(alpha = 0.25f) else Color(0x20000000)
                 }
             )
             .clip(shape)
@@ -372,9 +504,17 @@ fun LiquidGlassButton(
                 brush = Brush.verticalGradient(
                     colors = if (isProminent) {
                         if (isDark) {
-                            listOf(Color(0x8000E5FF), Color(0x450284C7), Color(0x300369A1))
+                            listOf(
+                                palette.primaryGlow.copy(alpha = 0.85f),
+                                palette.deepAccent.copy(alpha = 0.5f),
+                                Color(0x300369A1)
+                            )
                         } else {
-                            listOf(Color(0xFF00B4D8), Color(0xFF0284C7), Color(0xFF0369A1))
+                            listOf(
+                                palette.primaryGlow,
+                                palette.deepAccent,
+                                Color(0xFF0369A1)
+                            )
                         }
                     } else {
                         if (isDark) {
@@ -388,7 +528,7 @@ fun LiquidGlassButton(
             .liquidGlass(
                 shape = shape,
                 isDark = isDark,
-                borderColor = if (isProminent) Color.White.copy(alpha = 0.85f) else (if (isDark) Color.White.copy(alpha = 0.35f) else Color.White)
+                borderColor = if (isProminent) Color.White.copy(alpha = 0.9f) else (if (isDark) Color.White.copy(alpha = 0.35f) else Color.White)
             )
             .clickable(
                 interactionSource = interactionSource,
@@ -401,7 +541,7 @@ fun LiquidGlassButton(
 }
 
 // ============================================================================
-// 5. 3D LIQUID CIRCLE BUTTON (Image #2 Actions: Search, Refresh, Pick)
+// 5. 3D LIQUID CIRCLE BUTTON
 // ============================================================================
 
 @Composable
@@ -413,15 +553,16 @@ fun LiquidGlassCircleButton(
     content: @Composable BoxScope.() -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+    val glow = tintColor ?: palette.primaryGlow
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.89f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        targetValue = if (isPressed) LiquidGlassMotion.DeepPressScale else 1.0f,
+        animationSpec = LiquidGlassMotion.SpringBouncy,
         label = "droplet_btn_scale"
     )
 
@@ -435,7 +576,7 @@ fun LiquidGlassCircleButton(
             .shadow(
                 elevation = if (isDark) 6.dp else 4.dp,
                 shape = CircleShape,
-                spotColor = tintColor ?: if (isDark) Color(0x5000E5FF) else Color(0x30000000),
+                spotColor = if (isDark) glow.copy(alpha = 0.45f) else Color(0x30000000),
                 ambientColor = Color(0x18000000)
             )
             .clip(CircleShape)
@@ -448,13 +589,13 @@ fun LiquidGlassCircleButton(
                     brush = Brush.radialGradient(
                         colors = if (isDark) {
                             listOf(
-                                tintColor?.copy(alpha = 0.4f) ?: Color(0x45FFFFFF),
+                                glow.copy(alpha = 0.35f),
                                 Color(0x201E293B),
                                 Color(0x350A0F1A)
                             )
                         } else {
                             listOf(
-                                tintColor?.copy(alpha = 0.35f) ?: Color(0xFFFFFFFF),
+                                glow.copy(alpha = 0.25f),
                                 Color(0xF0F8FAFC),
                                 Color(0xD8E2E8F0)
                             )
@@ -486,13 +627,13 @@ fun LiquidGlassCircleButton(
                             listOf(
                                 Color(0xD9FFFFFF),
                                 Color(0x20FFFFFF),
-                                tintColor?.copy(alpha = 0.5f) ?: Color(0x4000E5FF)
+                                glow.copy(alpha = 0.5f)
                             )
                         } else {
                             listOf(
                                 Color(0xFFFFFFFF),
                                 Color(0x90CBD5E1),
-                                tintColor?.copy(alpha = 0.6f) ?: Color(0x6000B4D8)
+                                glow.copy(alpha = 0.6f)
                             )
                         },
                         start = Offset(0f, 0f),
@@ -513,7 +654,7 @@ fun LiquidGlassCircleButton(
 }
 
 // ============================================================================
-// 6. LIQUID GLASS FILTER CHIP (Image #2 Tabs & Filter Pills)
+// 6. LIQUID GLASS FILTER CHIP
 // ============================================================================
 
 @Composable
@@ -521,17 +662,18 @@ fun LiquidGlassFilterChip(
     selected: Boolean,
     onClick: () -> Unit,
     label: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    icon: (@Composable () -> Unit)? = null
 ) {
     val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.93f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        targetValue = if (isPressed) LiquidGlassMotion.PressScaleFactor else 1.0f,
+        animationSpec = LiquidGlassMotion.SpringBouncy,
         label = "chip_scale_$label"
     )
 
@@ -543,10 +685,10 @@ fun LiquidGlassFilterChip(
             }
             .shadow(
                 elevation = if (selected) 6.dp else 2.dp,
-                shape = RoundedCornerShape(22.dp),
-                spotColor = if (selected) (if (isDark) Color(0x6000E5FF) else Color(0x4000B4D8)) else Color(0x15000000)
+                shape = RoundedCornerShape(LiquidGlassDimens.RadiusPill),
+                spotColor = if (selected) (if (isDark) palette.primaryGlow.copy(alpha = 0.6f) else palette.deepAccent.copy(alpha = 0.4f)) else Color(0x15000000)
             )
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(LiquidGlassDimens.RadiusPill))
             .drawWithContent {
                 val w = size.width
                 val h = size.height
@@ -555,9 +697,17 @@ fun LiquidGlassFilterChip(
                     brush = Brush.verticalGradient(
                         colors = if (selected) {
                             if (isDark) {
-                                listOf(Color(0x8000E5FF), Color(0x450284C7), Color(0x350369A1))
+                                listOf(
+                                    palette.primaryGlow.copy(alpha = 0.8f),
+                                    palette.deepAccent.copy(alpha = 0.45f),
+                                    Color(0x350369A1)
+                                )
                             } else {
-                                listOf(Color(0xFF00B4D8), Color(0xFF0284C7), Color(0xFF0369A1))
+                                listOf(
+                                    palette.primaryGlow,
+                                    palette.deepAccent,
+                                    Color(0xFF0369A1)
+                                )
                             }
                         } else {
                             if (isDark) {
@@ -591,19 +741,19 @@ fun LiquidGlassFilterChip(
                 brush = Brush.verticalGradient(
                     colors = if (selected) {
                         if (isDark) {
-                            listOf(Color(0xE6FFFFFF), Color(0x8000E5FF))
+                            listOf(Color(0xE6FFFFFF), palette.primaryGlow.copy(alpha = 0.8f))
                         } else {
-                            listOf(Color(0xFFFFFFFF), Color(0x8038BDF8))
+                            listOf(Color(0xFFFFFFFF), palette.primaryGlow.copy(alpha = 0.6f))
                         }
                     } else {
                         if (isDark) {
-                            listOf(Color(0x4DFFFFFF), Color(0x15FFFFFF), Color(0x2800E5FF))
+                            listOf(Color(0x4DFFFFFF), Color(0x15FFFFFF), palette.primaryGlow.copy(alpha = 0.25f))
                         } else {
-                            listOf(Color(0xFFFFFFFF), Color(0x90CBD5E1), Color(0x5000B4D8))
+                            listOf(Color(0xFFFFFFFF), Color(0x90CBD5E1), palette.deepAccent.copy(alpha = 0.35f))
                         }
                     }
                 ),
-                shape = RoundedCornerShape(22.dp)
+                shape = RoundedCornerShape(LiquidGlassDimens.RadiusPill)
             )
             .clickable(
                 interactionSource = interactionSource,
@@ -613,36 +763,206 @@ fun LiquidGlassFilterChip(
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) {
-                if (isDark) Color.Black else Color.White
-            } else {
-                if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (icon != null) {
+                icon()
+                Spacer(modifier = Modifier.width(6.dp))
             }
-        )
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                color = if (selected) {
+                    if (isDark) Color.Black else Color.White
+                } else {
+                    if (isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A)
+                }
+            )
+        }
     }
 }
 
 // ============================================================================
-// 7. AMBIENT LIQUID BACKDROP (Liquid Aurora Blobs: #00E5FF & #A855F7)
+// 7. LIQUID GLASS SEARCH FIELD
+// ============================================================================
+
+@Composable
+fun LiquidGlassSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    onSearch: (() -> Unit)? = null,
+    onClear: (() -> Unit)? = null
+) {
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isFocused) 0.6f else 0.2f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "search_glow"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .shadow(
+                elevation = if (isFocused) 8.dp else 3.dp,
+                shape = RoundedCornerShape(LiquidGlassDimens.RadiusCapsule),
+                spotColor = palette.primaryGlow.copy(alpha = glowAlpha)
+            )
+            .clip(RoundedCornerShape(LiquidGlassDimens.RadiusCapsule))
+            .liquidGlass(
+                shape = RoundedCornerShape(LiquidGlassDimens.RadiusCapsule),
+                isDark = isDark,
+                accentGlow = if (isFocused) palette.primaryGlow else null,
+                borderColor = if (isFocused) palette.primaryGlow.copy(alpha = 0.9f) else (if (isDark) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.8f))
+            )
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = if (isFocused) palette.primaryGlow else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
+                modifier = Modifier.size(20.dp)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Box(modifier = Modifier.weight(1f)) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
+                        fontSize = 14.sp
+                    )
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    interactionSource = interactionSource,
+                    textStyle = TextStyle(
+                        color = if (isDark) Color.White else Color(0xFF0F172A),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    singleLine = true,
+                    cursorBrush = SolidColor(palette.primaryGlow),
+                    keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch?.invoke() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("liquid_search_input")
+                )
+            }
+
+            if (value.isNotEmpty()) {
+                IconButton(
+                    onClick = {
+                        onValueChange("")
+                        onClear?.invoke()
+                    },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Clear search",
+                        tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// 8. LIQUID GLASS SNACKBAR / TOAST
+// ============================================================================
+
+@Composable
+fun LiquidGlassSnackbar(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    val isDark = LocalIsDarkTheme.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp)
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(LiquidGlassDimens.RadiusPill),
+                spotColor = palette.primaryGlow.copy(alpha = 0.5f)
+            )
+            .clip(RoundedCornerShape(LiquidGlassDimens.RadiusPill))
+            .liquidGlass(
+                shape = RoundedCornerShape(LiquidGlassDimens.RadiusPill),
+                isDark = isDark,
+                accentGlow = palette.primaryGlow,
+                borderColor = palette.primaryGlow.copy(alpha = 0.8f)
+            )
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(palette.primaryGlow)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = message,
+                color = if (isDark) Color.White else Color(0xFF0F172A),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+// ============================================================================
+// 9. AMBIENT LIQUID BACKDROP (Slow animated aurora refractions)
 // ============================================================================
 
 @Composable
 fun AmbientLiquidBackdrop(
     modifier: Modifier = Modifier,
+    preset: LiquidGlassPreset = LocalLiquidPreset.current,
     content: @Composable () -> Unit
 ) {
     val isDark = LocalIsDarkTheme.current
+    val palette = getPaletteForPreset(preset)
+
     val infiniteTransition = rememberInfiniteTransition(label = "liquid_aurora")
 
     val phaseX by infiniteTransition.animateFloat(
-        initialValue = -40f,
-        targetValue = 50f,
+        initialValue = -35f,
+        targetValue = 45f,
         animationSpec = infiniteRepeatable(
-            animation = tween(8000, easing = FastOutSlowInEasing),
+            animation = tween(12000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "phase_x"
@@ -650,15 +970,15 @@ fun AmbientLiquidBackdrop(
 
     val phaseY by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 80f,
+        targetValue = 65f,
         animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = FastOutSlowInEasing),
+            animation = tween(14000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "phase_y"
     )
 
-    val bgColor = if (isDark) DarkGlassCanvas else LightGlassCanvas
+    val bgColor = if (isDark) LiquidGlassColors.DarkBaseBackground else LiquidGlassColors.LightBaseBackground
 
     Box(
         modifier = modifier
@@ -668,28 +988,28 @@ fun AmbientLiquidBackdrop(
                 val canvasHeight = size.height
 
                 if (isDark) {
-                    // 1. Cyan Liquid Blob (Top Right)
+                    // 1. Primary Glow Blob (Top Right)
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                CyanLiquidGlow.copy(alpha = 0.18f),
-                                CyanLiquidDeep.copy(alpha = 0.08f),
+                                palette.primaryGlow.copy(alpha = 0.18f),
+                                palette.deepAccent.copy(alpha = 0.08f),
                                 Color.Transparent
                             ),
                             center = Offset(canvasWidth * 0.85f + phaseX, canvasHeight * 0.15f + phaseY),
-                            radius = canvasWidth * 0.75f
+                            radius = canvasWidth * 0.8f
                         )
                     )
 
-                    // 2. Neon Purple Glass Blob (Bottom Left)
+                    // 2. Secondary Refraction Blob (Bottom Left)
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                PurpleGlassGlow.copy(alpha = 0.16f),
-                                PurpleGlassDeep.copy(alpha = 0.08f),
+                                PurpleGlassGlow.copy(alpha = 0.14f),
+                                PurpleGlassDeep.copy(alpha = 0.06f),
                                 Color.Transparent
                             ),
-                            center = Offset(canvasWidth * 0.15f - phaseX, canvasHeight * 0.65f - phaseY),
+                            center = Offset(canvasWidth * 0.15f - phaseX, canvasHeight * 0.7f - phaseY),
                             radius = canvasWidth * 0.85f
                         )
                     )
@@ -698,11 +1018,11 @@ fun AmbientLiquidBackdrop(
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                CyanLiquidGlow.copy(alpha = 0.08f),
+                                palette.primaryGlow.copy(alpha = 0.07f),
                                 Color.Transparent
                             ),
-                            center = Offset(canvasWidth * 0.5f, canvasHeight * 0.45f + phaseY * 0.5f),
-                            radius = canvasWidth * 0.5f
+                            center = Offset(canvasWidth * 0.5f, canvasHeight * 0.45f + phaseY * 0.4f),
+                            radius = canvasWidth * 0.55f
                         )
                     )
                 } else {
@@ -710,8 +1030,8 @@ fun AmbientLiquidBackdrop(
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color(0x2800B4D8),
-                                Color(0x1238BDF8),
+                                palette.primaryGlow.copy(alpha = 0.22f),
+                                palette.deepAccent.copy(alpha = 0.10f),
                                 Color.Transparent
                             ),
                             center = Offset(canvasWidth * 0.85f + phaseX, canvasHeight * 0.15f + phaseY),
@@ -726,7 +1046,7 @@ fun AmbientLiquidBackdrop(
                                 Color(0x10818CF8),
                                 Color.Transparent
                             ),
-                            center = Offset(canvasWidth * 0.15f - phaseX, canvasHeight * 0.65f - phaseY),
+                            center = Offset(canvasWidth * 0.15f - phaseX, canvasHeight * 0.7f - phaseY),
                             radius = canvasWidth * 0.85f
                         )
                     )
@@ -734,10 +1054,10 @@ fun AmbientLiquidBackdrop(
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color(0x180284C7),
+                                palette.deepAccent.copy(alpha = 0.12f),
                                 Color.Transparent
                             ),
-                            center = Offset(canvasWidth * 0.5f, canvasHeight * 0.45f + phaseY * 0.5f),
+                            center = Offset(canvasWidth * 0.5f, canvasHeight * 0.45f + phaseY * 0.4f),
                             radius = canvasWidth * 0.6f
                         )
                     )

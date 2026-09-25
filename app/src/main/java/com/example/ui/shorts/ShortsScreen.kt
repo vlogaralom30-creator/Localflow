@@ -34,15 +34,11 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -74,9 +70,9 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.example.data.local.VideoEntity
 import com.example.ui.theme.AmoledBlack
-import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.LocalLiquidPreset
 import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
+import com.example.ui.theme.getPaletteForPreset
 import com.example.viewmodel.VideoPlayerViewModel
 import kotlinx.coroutines.delay
 
@@ -156,21 +152,22 @@ private fun ShortVideoItem(
     totalCount: Int
 ) {
     val context = LocalContext.current
+    val preset = LocalLiquidPreset.current
+    val palette = getPaletteForPreset(preset)
+
     var isPlaying by remember { mutableStateOf(true) }
     var isBuffering by remember { mutableStateOf(true) }
     var showPauseOverlay by remember { mutableStateOf(false) }
     var progress by remember { mutableFloatStateOf(0f) }
 
-    // ExoPlayer dedicated for this short item
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
-            repeatMode = Player.REPEAT_MODE_ONE // Loop short videos
+            repeatMode = Player.REPEAT_MODE_ONE
             setMediaItem(MediaItem.fromUri(Uri.parse(video.uri)))
             prepare()
         }
     }
 
-    // React to whether this short item is currently visible
     LaunchedEffect(isCurrentPage) {
         if (isCurrentPage) {
             exoPlayer.seekTo(0)
@@ -182,7 +179,6 @@ private fun ShortVideoItem(
         }
     }
 
-    // Playback state listener
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
@@ -201,7 +197,6 @@ private fun ShortVideoItem(
         }
     }
 
-    // Track position for progress bar
     LaunchedEffect(isCurrentPage, isPlaying) {
         while (isCurrentPage && isPlaying) {
             val dur = exoPlayer.duration
@@ -229,7 +224,6 @@ private fun ShortVideoItem(
                 }
             }
     ) {
-        // ExoPlayer Surface (Scale to fill 9:16 screen)
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
@@ -258,7 +252,7 @@ private fun ShortVideoItem(
                 )
         )
 
-        // Top indicator (e.g. 3/24)
+        // Top counter badge
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -276,7 +270,7 @@ private fun ShortVideoItem(
             )
         }
 
-        // Animated Pause Indicator in center
+        // Pause Indicator in center
         AnimatedVisibility(
             visible = showPauseOverlay,
             enter = fadeIn(),
@@ -287,8 +281,8 @@ private fun ShortVideoItem(
                 modifier = Modifier
                     .size(76.dp)
                     .clip(CircleShape)
-                    .background(Color(0x8000E5FF))
-                    .border(1.5.dp, Color(0xCCFFFFFF), CircleShape),
+                    .background(palette.primaryGlow.copy(alpha = 0.85f))
+                    .border(1.5.dp, Color.White, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -303,7 +297,7 @@ private fun ShortVideoItem(
         // Buffering wheel
         if (isBuffering && isCurrentPage) {
             CircularProgressIndicator(
-                color = CyanAccent,
+                color = palette.primaryGlow,
                 strokeWidth = 3.dp,
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -311,7 +305,7 @@ private fun ShortVideoItem(
             )
         }
 
-        // Right-Side Action Rail (Watch Later, Add to Album, Share, More)
+        // Right-Side Action Rail
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -319,15 +313,13 @@ private fun ShortVideoItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Watch Later Action
             ActionRailItem(
                 icon = if (video.isWatchLater) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                 label = "Watch Later",
-                tint = if (video.isWatchLater) CyanAccent else Color.White,
+                tint = if (video.isWatchLater) palette.primaryGlow else Color.White,
                 onClick = onWatchLaterToggle
             )
 
-            // Add to Album Action
             ActionRailItem(
                 icon = Icons.Default.PlaylistAdd,
                 label = "Add to Album",
@@ -335,7 +327,6 @@ private fun ShortVideoItem(
                 onClick = onAddToAlbum
             )
 
-            // Share Action
             ActionRailItem(
                 icon = Icons.Default.Share,
                 label = "Share",
@@ -350,7 +341,6 @@ private fun ShortVideoItem(
                 }
             )
 
-            // More Options Action
             ActionRailItem(
                 icon = Icons.Default.MoreVert,
                 label = "More",
@@ -359,7 +349,7 @@ private fun ShortVideoItem(
             )
         }
 
-        // Bottom Overlay: Title, Duration, Resolution, Size, Folder Path, and Seekbar
+        // Bottom Overlay
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -376,7 +366,6 @@ private fun ShortVideoItem(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Tech specs: 0:42 • 1080x1920 • 12.5MB
             Text(
                 text = "${video.formattedDuration()} • ${video.resolution ?: "1080x1920"} • ${video.formattedSize()}",
                 color = Color.White.copy(alpha = 0.85f),
@@ -390,13 +379,13 @@ private fun ShortVideoItem(
                 Icon(
                     imageVector = Icons.Default.Folder,
                     contentDescription = null,
-                    tint = CyanAccent,
+                    tint = palette.primaryGlow,
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = video.folderName,
-                    color = CyanAccent,
+                    color = palette.primaryGlow,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -404,13 +393,12 @@ private fun ShortVideoItem(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Scrubber Progress line
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp),
-                color = CyanAccent,
+                color = palette.primaryGlow,
                 trackColor = Color.White.copy(alpha = 0.3f)
             )
         }
