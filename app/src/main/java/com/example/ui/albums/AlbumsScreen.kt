@@ -1,6 +1,7 @@
 package com.example.ui.albums
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -182,20 +184,20 @@ fun AlbumsScreen(
                         Icon(Icons.Default.Add, contentDescription = "Create Album", tint = CyanAccent)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AmoledBlack)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            com.example.ui.theme.LiquidGlassButton(
                 onClick = { showCreateDialog = true },
-                containerColor = CyanAccent,
-                contentColor = AmoledBlack,
-                modifier = Modifier.testTag("create_album_fab")
+                modifier = Modifier.size(56.dp).testTag("create_album_fab"),
+                shape = CircleShape,
+                isProminent = true
             ) {
-                Icon(Icons.Default.Add, contentDescription = "New Album")
+                Icon(Icons.Default.Add, contentDescription = "New Album", tint = Color.Black, modifier = Modifier.size(28.dp))
             }
         },
-        containerColor = AmoledBlack
+        containerColor = Color.Transparent
     ) { innerPadding ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -222,22 +224,50 @@ private fun AlbumCard(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val isDark = com.example.ui.theme.LocalIsDarkTheme.current
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = if (isDark) {
+                        listOf(
+                            Color(0x38FFFFFF),
+                            Color(0x22162234),
+                            Color(0x400C121E)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xF5FFFFFF),
+                            Color(0xEBF8FAFC),
+                            Color(0xE0F1F5F9)
+                        )
+                    }
+                )
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    if (isDark) {
+                        listOf(Color(0x59FFFFFF), Color(0x1AFFFFFF), Color(0x3300E5FF))
+                    } else {
+                        listOf(Color(0xFFFFFFFF), Color(0x80CBD5E1), Color(0x4000B4D8))
+                    }
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
             .clickable(onClick = onClick)
-            .testTag("album_card_${album.id}"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardDark)
+            .testTag("album_card_${album.id}")
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .background(CardElevated)
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(Color(0x33101826))
             ) {
                 if (album.coverUri != null) {
                     AsyncImage(

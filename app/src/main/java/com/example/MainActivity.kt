@@ -6,6 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.LocalFlowApp
 import com.example.ui.theme.NaxxivoTheme
 import com.example.viewmodel.VideoPlayerViewModel
@@ -21,7 +23,8 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
 
         setContent {
-            NaxxivoTheme {
+            val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
+            NaxxivoTheme(darkTheme = isDarkTheme) {
                 LocalFlowApp(viewModel = viewModel)
             }
         }

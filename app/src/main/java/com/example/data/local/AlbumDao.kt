@@ -58,4 +58,10 @@ interface AlbumDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM video_album_cross_ref WHERE albumId = :albumId AND videoId = :videoId)")
     suspend fun isVideoInAlbum(albumId: Long, videoId: Long): Boolean
+
+    @Query("DELETE FROM albums WHERE coverUri LIKE 'http://%' OR coverUri LIKE 'https://%'")
+    suspend fun deleteDemoAlbums()
+
+    @Query("DELETE FROM video_album_cross_ref WHERE videoId NOT IN (SELECT id FROM videos)")
+    suspend fun cleanupOrphanCrossRefs()
 }

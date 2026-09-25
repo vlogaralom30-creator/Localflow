@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Android 13+ (API 33+) permission for reading local video files -->
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Android 14+ (API 34+) partial access permission -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <!-- Android 12 and below permission for reading local storage -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"

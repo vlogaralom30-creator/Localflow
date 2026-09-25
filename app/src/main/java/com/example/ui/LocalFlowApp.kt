@@ -26,6 +26,8 @@ import com.example.ui.player.LongVideoPlayerScreen
 import com.example.ui.search.SearchScreen
 import com.example.ui.settings.SettingsScreen
 import com.example.ui.shorts.ShortsScreen
+import androidx.compose.ui.graphics.Color
+import com.example.ui.theme.AmbientLiquidBackdrop
 import com.example.ui.theme.AmoledBlack
 import com.example.viewmodel.NavTab
 import com.example.viewmodel.VideoPlayerViewModel
@@ -68,31 +70,31 @@ fun LocalFlowApp(
         return
     }
 
-    // 3. Main Scaffold with 5 Bottom Navigation Tabs
-    Scaffold(
-        modifier = modifier
-            .fillMaxSize()
-            .background(AmoledBlack),
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            LocalFlowBottomBar(
-                currentTab = currentTab,
-                onTabSelected = { viewModel.setNavTab(it) }
-            )
-        },
-        containerColor = AmoledBlack
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (currentTab) {
-                NavTab.HOME -> HomeScreen(viewModel = viewModel)
-                NavTab.SHORTS -> ShortsScreen(viewModel = viewModel)
-                NavTab.LIBRARY -> LibraryScreen(viewModel = viewModel)
-                NavTab.ALBUMS -> AlbumsScreen(viewModel = viewModel)
-                NavTab.SETTINGS -> SettingsScreen(viewModel = viewModel)
+    // 3. Main Scaffold with 5 Bottom Navigation Tabs & Ambient Liquid Glass Backdrop
+    AmbientLiquidBackdrop(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                LocalFlowBottomBar(
+                    currentTab = currentTab,
+                    onTabSelected = { viewModel.setNavTab(it) }
+                )
+            },
+            containerColor = Color.Transparent
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                when (currentTab) {
+                    NavTab.HOME -> HomeScreen(viewModel = viewModel)
+                    NavTab.SHORTS -> ShortsScreen(viewModel = viewModel)
+                    NavTab.LIBRARY -> LibraryScreen(viewModel = viewModel)
+                    NavTab.ALBUMS -> AlbumsScreen(viewModel = viewModel)
+                    NavTab.SETTINGS -> SettingsScreen(viewModel = viewModel)
+                }
             }
         }
     }

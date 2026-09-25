@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +25,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cast
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -44,6 +47,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -75,6 +80,7 @@ fun HomeScreen(
     val shortVideos by viewModel.shortVideos.collectAsStateWithLifecycle()
     val longVideos by viewModel.longVideos.collectAsStateWithLifecycle()
     val allVideos by viewModel.allVideos.collectAsStateWithLifecycle()
+    val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -95,19 +101,26 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.testTag("home_brand_header")
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = CyanAccent,
-                            modifier = Modifier.size(28.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(0x9900E5FF), Color(0x6600B4D8))
+                                    )
+                                )
+                                .border(1.dp, Color(0xCCFFFFFF), CircleShape),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayCircle,
                                 contentDescription = null,
-                                tint = AmoledBlack,
-                                modifier = Modifier.padding(2.dp)
+                                tint = Color.Black,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "LocalFlow",
                             style = MaterialTheme.typography.titleLarge,
@@ -117,31 +130,50 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(
+                    com.example.ui.theme.LiquidGlassButton(
                         onClick = { filePickerLauncher.launch(arrayOf("video/*")) },
-                        modifier = Modifier.testTag("home_pick_file_btn")
+                        modifier = Modifier.size(38.dp).testTag("home_pick_file_btn"),
+                        shape = CircleShape
                     ) {
-                        Icon(Icons.Default.FileOpen, contentDescription = "Open video file", tint = TextPrimary)
+                        Icon(Icons.Default.FileOpen, contentDescription = "Open video file", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
-                    IconButton(
+                    Spacer(modifier = Modifier.width(8.dp))
+                    com.example.ui.theme.LiquidGlassButton(
                         onClick = { viewModel.scanVideos() },
-                        modifier = Modifier.testTag("home_refresh_btn")
+                        modifier = Modifier.size(38.dp).testTag("home_refresh_btn"),
+                        shape = CircleShape
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Rescan media", tint = TextPrimary)
+                        Icon(Icons.Default.Refresh, contentDescription = "Rescan media", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
-                    IconButton(
+                    Spacer(modifier = Modifier.width(8.dp))
+                    com.example.ui.theme.LiquidGlassButton(
                         onClick = { viewModel.openSearch() },
-                        modifier = Modifier.testTag("home_search_btn")
+                        modifier = Modifier.size(38.dp).testTag("home_search_btn"),
+                        shape = CircleShape
                     ) {
-                        Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary)
+                        Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    com.example.ui.theme.LiquidGlassButton(
+                        onClick = { viewModel.toggleTheme() },
+                        modifier = Modifier.size(38.dp).testTag("home_theme_toggle_btn"),
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = if (isDarkTheme) "Switch to Light theme" else "Switch to Dark theme",
+                            tint = if (isDarkTheme) Color(0xFFFFD54F) else TextPrimary,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AmoledBlack
+                    containerColor = Color.Transparent
                 )
             )
         },
-        containerColor = AmoledBlack
+        containerColor = Color.Transparent
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -149,7 +181,7 @@ fun HomeScreen(
                 .padding(innerPadding),
             contentPadding = PaddingValues(bottom = 90.dp)
         ) {
-            // 1. Horizontal Category Filter Chips
+            // 1. Horizontal Category Filter Chips (Liquid Glass)
             item {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
@@ -165,23 +197,10 @@ fun HomeScreen(
                     )
                     items(categories) { (cat, label) ->
                         val isSelected = homeCategory == cat
-                        FilterChip(
+                        com.example.ui.theme.LiquidGlassFilterChip(
                             selected = isSelected,
                             onClick = { viewModel.setHomeCategory(cat) },
-                            label = {
-                                Text(
-                                    text = label,
-                                    fontSize = 12.sp,
-                                    color = if (isSelected) AmoledBlack else TextSecondary,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = CyanAccent,
-                                containerColor = CardElevated
-                            ),
-                            border = null,
-                            shape = RoundedCornerShape(20.dp),
+                            label = label,
                             modifier = Modifier.testTag("home_chip_${cat.name.lowercase()}")
                         )
                     }
@@ -253,7 +272,7 @@ fun HomeScreen(
                 if (feedVideos.isEmpty()) {
                     item {
                         EmptyFeedPlaceholder(
-                            onLoadDemo = { viewModel.scanVideos() },
+                            onScan = { viewModel.scanVideos() },
                             onPickFile = { filePickerLauncher.launch(arrayOf("video/*")) }
                         )
                     }
@@ -308,7 +327,7 @@ private fun SectionHeader(
 
 @Composable
 private fun EmptyFeedPlaceholder(
-    onLoadDemo: () -> Unit,
+    onScan: () -> Unit,
     onPickFile: () -> Unit
 ) {
     Column(
@@ -337,5 +356,17 @@ private fun EmptyFeedPlaceholder(
             color = TextMuted,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            androidx.compose.material3.Button(
+                onClick = onScan,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CyanAccent)
+            ) {
+                Text("Scan Storage", color = Color.Black)
+            }
+            androidx.compose.material3.OutlinedButton(onClick = onPickFile) {
+                Text("Pick Video", color = TextPrimary)
+            }
+        }
     }
 }

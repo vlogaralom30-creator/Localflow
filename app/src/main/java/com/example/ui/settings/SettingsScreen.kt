@@ -1,7 +1,10 @@
 package com.example.ui.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,9 +18,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Speed
@@ -37,6 +42,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,6 +69,7 @@ fun SettingsScreen(
     val rememberPos by viewModel.rememberPosition.collectAsStateWithLifecycle()
     val bgAudio by viewModel.backgroundAudio.collectAsStateWithLifecycle()
     val orientation by viewModel.defaultOrientation.collectAsStateWithLifecycle()
+    val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier
@@ -76,10 +85,10 @@ fun SettingsScreen(
                         color = TextPrimary
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AmoledBlack)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
-        containerColor = AmoledBlack
+        containerColor = Color.Transparent
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -87,8 +96,30 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
+            // Appearance & Theme
             item {
                 Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Appearance",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = CyanAccent,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            item {
+                SettingsSwitchRow(
+                    icon = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
+                    title = "Dark Theme",
+                    subtitle = if (isDarkTheme) "Deep AMOLED liquid glass theme" else "Bright pearl liquid glass theme",
+                    checked = isDarkTheme,
+                    onCheckedChange = { viewModel.setDarkTheme(it) }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            item {
                 Text(
                     text = "Player",
                     style = MaterialTheme.typography.titleSmall,
@@ -220,12 +251,31 @@ private fun SettingsSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = CardDark,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color(0x35FFFFFF),
+                        Color(0x20152032),
+                        Color(0x350A0F1A)
+                    )
+                )
+            )
+            .border(
+                width = 0.8.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color(0x52FFFFFF),
+                        Color(0x15FFFFFF),
+                        Color(0x2800E5FF)
+                    )
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
     ) {
         Row(
             modifier = Modifier
@@ -262,7 +312,7 @@ private fun SettingsSwitchRow(
                     checkedThumbColor = AmoledBlack,
                     checkedTrackColor = CyanAccent,
                     uncheckedThumbColor = TextMuted,
-                    uncheckedTrackColor = AmoledBlack
+                    uncheckedTrackColor = Color(0x33FFFFFF)
                 )
             )
         }

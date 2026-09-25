@@ -44,6 +44,7 @@ class VideoRepository(
      */
     suspend fun scanMediaStore(): Result<Int> = withContext(Dispatchers.IO) {
         try {
+            purgeAllDemoData()
             val contentResolver = context.contentResolver
             val projection = arrayOf(
                 MediaStore.Video.Media._ID,
@@ -195,197 +196,15 @@ class VideoRepository(
     }
 
     /**
-     * Seeds initial sample videos and default albums (Movies, Anime, Music, Travel, Personal)
-     * matching the user's LocalFlow design mockup.
+     * Purges any mock or demo video entries from the database, ensuring only real local videos exist.
      */
-    suspend fun seedSampleVideosIfEmpty() = withContext(Dispatchers.IO) {
-        // Create Default Albums
-        val albumMovies = albumDao.insertAlbum(AlbumEntity(name = "Movies", coverUri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg"))
-        val albumAnime = albumDao.insertAlbum(AlbumEntity(name = "Anime", coverUri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg"))
-        val albumMusic = albumDao.insertAlbum(AlbumEntity(name = "Music", coverUri = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&q=80"))
-        val albumTravel = albumDao.insertAlbum(AlbumEntity(name = "Travel", coverUri = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80"))
-        val albumPersonal = albumDao.insertAlbum(AlbumEntity(name = "Personal", coverUri = "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500&q=80"))
-
-        val sampleVideos = listOf(
-            // Long Videos
-            VideoEntity(
-                uri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                filePath = "/storage/emulated/0/Movies/The_Last_Horizon.mp4",
-                title = "The Last Horizon",
-                durationMs = 1425000L, // 23:45
-                sizeBytes = 1932735283L, // 1.8 GB
-                width = 1920,
-                height = 1080,
-                isShort = false,
-                resolution = "1920x1080 (1080p)",
-                fps = "23.98 FPS",
-                mimeType = "video/mp4",
-                thumbnailUri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
-                dateAdded = System.currentTimeMillis() - 7200000L,
-                folderName = "Movies",
-                lastPositionMs = 769500L, // 54% watched
-                watchCount = 4,
-                isWatchLater = false,
-                isFavorite = true
-            ),
-            VideoEntity(
-                uri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-                filePath = "/storage/emulated/0/Movies/Anime_Movie.mp4",
-                title = "Anime Movie Special",
-                durationMs = 3372000L, // 56:12
-                sizeBytes = 2576980377L, // 2.4 GB
-                width = 1920,
-                height = 1080,
-                isShort = false,
-                resolution = "1920x1080 (1080p)",
-                fps = "24.00 FPS",
-                mimeType = "video/mp4",
-                thumbnailUri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg",
-                dateAdded = System.currentTimeMillis() - 14400000L,
-                folderName = "Anime",
-                lastPositionMs = 1079040L, // 32% watched
-                watchCount = 2,
-                isWatchLater = true,
-                isFavorite = true
-            ),
-            VideoEntity(
-                uri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-                filePath = "/storage/emulated/0/Movies/The_Last_Horizon_Part_2.mp4",
-                title = "The Last Horizon Part 2",
-                durationMs = 5718000L, // 1:35:18
-                sizeBytes = 1610612736L, // 1.5 GB
-                width = 1920,
-                height = 1080,
-                isShort = false,
-                resolution = "1920x1080 (1080p)",
-                fps = "24.00 FPS",
-                mimeType = "video/mp4",
-                thumbnailUri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/TearsOfSteel.jpg",
-                dateAdded = System.currentTimeMillis() - 86400000L,
-                folderName = "Movies",
-                lastPositionMs = 0L,
-                watchCount = 1,
-                isWatchLater = false,
-                isFavorite = false
-            ),
-            VideoEntity(
-                uri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-                filePath = "/storage/emulated/0/DCIM/Camera/Sunset_Beach_Walk.mp4",
-                title = "Sunset Beach Walk",
-                durationMs = 936000L, // 15:36
-                sizeBytes = 1288490188L, // 1.2 GB
-                width = 1920,
-                height = 1080,
-                isShort = false,
-                resolution = "1920x1080 (1080p)",
-                fps = "60.00 FPS",
-                mimeType = "video/mp4",
-                thumbnailUri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg",
-                dateAdded = System.currentTimeMillis() - 3600000L,
-                folderName = "Camera",
-                lastPositionMs = 0L,
-                watchCount = 3,
-                isWatchLater = false,
-                isFavorite = true
-            ),
-            VideoEntity(
-                uri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-                filePath = "/storage/emulated/0/Travel/Mountain_Adventure.mp4",
-                title = "Mountain Adventure",
-                durationMs = 1938000L, // 32:18
-                sizeBytes = 1610612736L, // 1.5 GB
-                width = 1920,
-                height = 1080,
-                isShort = false,
-                resolution = "1920x1080 (1080p)",
-                fps = "30.00 FPS",
-                mimeType = "video/mp4",
-                thumbnailUri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerEscapes.jpg",
-                dateAdded = System.currentTimeMillis() - 432000000L,
-                folderName = "Travel",
-                lastPositionMs = 0L,
-                watchCount = 0,
-                isWatchLater = true,
-                isFavorite = false
-            ),
-            // Shorts (9:16 Aspect Ratio)
-            VideoEntity(
-                uri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyBlazes.mp4",
-                filePath = "/storage/emulated/0/DCIM/Camera/VID_Short_Nature_Walk.mp4",
-                title = "Beautiful Nature Walk",
-                durationMs = 42000L, // 0:42
-                sizeBytes = 13107200L, // 12.5 MB
-                width = 1080,
-                height = 1920,
-                isShort = true,
-                resolution = "1080x1920 (9:16)",
-                fps = "30.00 FPS",
-                mimeType = "video/mp4",
-                thumbnailUri = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80",
-                dateAdded = System.currentTimeMillis() - 1800000L,
-                folderName = "Camera",
-                lastPositionMs = 0L,
-                watchCount = 5,
-                isWatchLater = false,
-                isFavorite = true
-            ),
-            VideoEntity(
-                uri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
-                filePath = "/storage/emulated/0/DCIM/Camera/Beach_Vibes_Sunset.mp4",
-                title = "Beach Vibes Sunset",
-                durationMs = 26000L, // 0:26
-                sizeBytes = 8388608L, // 8.0 MB
-                width = 1080,
-                height = 1920,
-                isShort = true,
-                resolution = "1080x1920 (9:16)",
-                fps = "60.00 FPS",
-                mimeType = "video/mp4",
-                thumbnailUri = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80",
-                dateAdded = System.currentTimeMillis() - 3600000L,
-                folderName = "Camera",
-                lastPositionMs = 0L,
-                watchCount = 2,
-                isWatchLater = false,
-                isFavorite = false
-            ),
-            VideoEntity(
-                uri = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4",
-                filePath = "/storage/emulated/0/Download/City_Night_Neon.mp4",
-                title = "City Night Lights",
-                durationMs = 45000L, // 0:45
-                sizeBytes = 15728640L, // 15.0 MB
-                width = 1080,
-                height = 1920,
-                isShort = true,
-                resolution = "1080x1920 (9:16)",
-                fps = "30.00 FPS",
-                mimeType = "video/mp4",
-                thumbnailUri = "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&q=80",
-                dateAdded = System.currentTimeMillis() - 7200000L,
-                folderName = "Downloads",
-                lastPositionMs = 0L,
-                watchCount = 8,
-                isWatchLater = false,
-                isFavorite = true
-            )
-        )
-
-        videoDao.insertAll(sampleVideos)
-
-        // Associate sample videos to albums
-        val allCurrent = videoDao.getAllVideos()
-        // Link first 2 videos to Movies and Anime
-        sampleVideos.forEachIndexed { index, video ->
-            val inserted = videoDao.getVideoByUri(video.uri)
-            if (inserted != null) {
-                when {
-                    index == 0 || index == 2 -> albumDao.addVideoToAlbum(VideoAlbumCrossRef(albumMovies, inserted.id))
-                    index == 1 -> albumDao.addVideoToAlbum(VideoAlbumCrossRef(albumAnime, inserted.id))
-                    index == 4 -> albumDao.addVideoToAlbum(VideoAlbumCrossRef(albumTravel, inserted.id))
-                    else -> albumDao.addVideoToAlbum(VideoAlbumCrossRef(albumPersonal, inserted.id))
-                }
-            }
+    suspend fun purgeAllDemoData() = withContext(Dispatchers.IO) {
+        try {
+            videoDao.deleteDemoVideos()
+            albumDao.deleteDemoAlbums()
+            albumDao.cleanupOrphanCrossRefs()
+        } catch (e: Exception) {
+            Log.e("VideoRepository", "Error purging demo data", e)
         }
     }
 

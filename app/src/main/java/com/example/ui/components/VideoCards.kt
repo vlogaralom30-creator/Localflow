@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,6 +64,7 @@ import com.example.ui.theme.CardDark
 import com.example.ui.theme.CardElevated
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.ErrorRed
+import com.example.ui.theme.LocalIsDarkTheme
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -77,25 +79,52 @@ fun ContinueWatchingCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val isDark = LocalIsDarkTheme.current
     val progress = (video.lastPositionMs.toFloat() / video.durationMs.coerceAtLeast(1L).toFloat()).coerceIn(0f, 1f)
     val percent = video.watchProgressPercent()
 
-    Card(
+    Box(
         modifier = modifier
-            .width(220.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .width(230.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = if (isDark) {
+                        listOf(
+                            Color(0x38FFFFFF),
+                            Color(0x2E162234),
+                            Color(0x450D1420)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xF5FFFFFF),
+                            Color(0xEBF8FAFC),
+                            Color(0xE0F1F5F9)
+                        )
+                    }
+                )
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    if (isDark) {
+                        listOf(Color(0x66FFFFFF), Color(0x18FFFFFF), Color(0x3300E5FF))
+                    } else {
+                        listOf(Color(0xFFFFFFFF), Color(0x80CBD5E1), Color(0x4000B4D8))
+                    }
+                ),
+                shape = RoundedCornerShape(18.dp)
+            )
             .clickable(onClick = onClick)
-            .testTag("continue_card_${video.id}"),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardDark),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(BorderDark, Color.Transparent)))
+            .testTag("continue_card_${video.id}")
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
-                    .background(CardElevated)
+                    .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+                    .background(Color(0x33101826))
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
@@ -108,36 +137,39 @@ fun ContinueWatchingCard(
                     contentScale = ContentScale.Crop
                 )
 
-                // Resolution badge
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = AmoledBlack.copy(alpha = 0.75f),
+                // Liquid glass quality badge
+                Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(6.dp)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0x60070B14))
+                        .border(0.8.dp, Color(0x4DFFFFFF), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = video.qualityBadge(),
                         color = Color.White,
                         fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
-                // Play icon
-                Surface(
-                    shape = CircleShape,
-                    color = AmoledBlack.copy(alpha = 0.6f),
+                // Liquid glass Play icon
+                Box(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(36.dp)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x8000E5FF))
+                        .border(1.dp, Color(0xB3FFFFFF), CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = "Resume",
-                        tint = CyanAccent,
-                        modifier = Modifier.padding(6.dp)
+                        tint = Color.Black,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
@@ -146,14 +178,14 @@ fun ContinueWatchingCard(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(3.dp)
+                        .height(3.5.dp)
                         .align(Alignment.BottomCenter),
                     color = CyanAccent,
                     trackColor = Color.White.copy(alpha = 0.2f)
                 )
             }
 
-            Column(modifier = Modifier.padding(10.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     text = video.title,
                     style = MaterialTheme.typography.titleSmall,
@@ -162,7 +194,7 @@ fun ContinueWatchingCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -195,78 +227,88 @@ fun ShortVideoShelfCard(
 ) {
     val context = LocalContext.current
 
-    Card(
+    Box(
         modifier = modifier
-            .width(130.dp)
+            .width(136.dp)
             .aspectRatio(9f / 16f)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0x33101826))
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    listOf(Color(0x55FFFFFF), Color(0x18FFFFFF), Color(0x3300E5FF))
+                ),
+                shape = RoundedCornerShape(18.dp)
+            )
             .clickable(onClick = onClick)
-            .testTag("short_card_${video.id}"),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardDark)
+            .testTag("short_card_${video.id}")
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(video.thumbnailUri ?: video.uri)
-                    .videoFrameMillis(1500)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = video.title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(video.thumbnailUri ?: video.uri)
+                .videoFrameMillis(1500)
+                .crossfade(true)
+                .build(),
+            contentDescription = video.title,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
 
-            // Dark gradient overlay at bottom
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
-                            startY = 180f
-                        )
+        // Liquid dark gradient overlay at bottom
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0x400A0F1A),
+                            Color(0xEB060A12)
+                        ),
+                        startY = 140f
                     )
+                )
+        )
+
+        // Frosted glass duration badge top right
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(7.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0x66080D18))
+                .border(0.8.dp, Color(0x4DFFFFFF), RoundedCornerShape(8.dp))
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = video.formattedDuration(),
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
             )
+        }
 
-            // Duration badge top right
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = AmoledBlack.copy(alpha = 0.7f),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(6.dp)
-            ) {
-                Text(
-                    text = video.formattedDuration(),
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                )
-            }
-
-            // Title at bottom
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(8.dp)
-            ) {
-                Text(
-                    text = video.title,
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = video.folderName,
-                    color = CyanAccent,
-                    fontSize = 10.sp,
-                    maxLines = 1
-                )
-            }
+        // Title and folder badge at bottom
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(10.dp)
+        ) {
+            Text(
+                text = video.title,
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = video.folderName,
+                color = CyanAccent,
+                fontSize = 10.sp,
+                maxLines = 1,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }
@@ -299,8 +341,15 @@ fun LongVideoFeedCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(CardElevated)
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color(0x33101826))
+                .border(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        listOf(Color(0x40FFFFFF), Color(0x10FFFFFF), Color(0x2800E5FF))
+                    ),
+                    shape = RoundedCornerShape(18.dp)
+                )
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
@@ -313,37 +362,39 @@ fun LongVideoFeedCard(
                 contentScale = ContentScale.Crop
             )
 
-            // Duration badge bottom right
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = AmoledBlack.copy(alpha = 0.85f),
+            // Frosted glass duration badge bottom right
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(8.dp)
+                    .padding(10.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0x73060A14))
+                    .border(0.8.dp, Color(0x59FFFFFF), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Text(
                     text = video.formattedDuration(),
                     color = Color.White,
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            // Quality badge top left
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = CyanAccent.copy(alpha = 0.9f),
+            // Liquid glass quality badge top left
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(8.dp)
+                    .padding(10.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0x8000E5FF))
+                    .border(1.dp, Color(0xB3FFFFFF), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 7.dp, vertical = 3.dp)
             ) {
                 Text(
                     text = video.qualityBadge(),
-                    color = AmoledBlack,
+                    color = Color.Black,
                     fontSize = 10.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                    fontWeight = FontWeight.ExtraBold
                 )
             }
         }

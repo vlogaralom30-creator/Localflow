@@ -71,6 +71,9 @@ interface VideoDao {
     @Query("UPDATE videos SET isFavorite = :isFavorite WHERE id = :id")
     suspend fun updateFavorite(id: Long, isFavorite: Boolean)
 
+    @Query("DELETE FROM videos WHERE uri LIKE 'http://%' OR uri LIKE 'https://%' OR filePath LIKE '/storage/emulated/0/Movies/The_Last_Horizon%'")
+    suspend fun deleteDemoVideos()
+
     @Delete
     suspend fun deleteVideo(video: VideoEntity)
 

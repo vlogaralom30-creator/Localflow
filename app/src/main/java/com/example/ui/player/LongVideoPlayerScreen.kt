@@ -10,8 +10,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,8 +66,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -85,6 +89,8 @@ import com.example.ui.theme.AmoledBlack
 import com.example.ui.theme.BorderDark
 import com.example.ui.theme.CardElevated
 import com.example.ui.theme.CyanAccent
+import com.example.ui.theme.LiquidCyanAccent
+import com.example.ui.theme.LiquidGlassButton
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
@@ -244,28 +250,37 @@ fun LongVideoPlayerScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .align(Alignment.TopCenter)
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
+                        LiquidGlassButton(
                             onClick = { viewModel.closePlayer() },
-                            modifier = Modifier.testTag("player_close_btn")
+                            modifier = Modifier.size(42.dp),
+                            shape = CircleShape
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(20.dp))
                         }
                         Spacer(modifier = Modifier.weight(1f))
 
                         // Aspect ratio mode
-                        IconButton(
-                            onClick = { resizeModeIndex = (resizeModeIndex + 1) % resizeModes.size }
+                        LiquidGlassButton(
+                            onClick = { resizeModeIndex = (resizeModeIndex + 1) % resizeModes.size },
+                            modifier = Modifier.size(42.dp),
+                            shape = CircleShape
                         ) {
-                            Icon(Icons.Default.AspectRatio, contentDescription = "Aspect ratio", tint = Color.White)
+                            Icon(Icons.Default.AspectRatio, contentDescription = "Aspect ratio", tint = Color.White, modifier = Modifier.size(20.dp))
                         }
+
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         // Playback Speed
                         Box {
-                            IconButton(onClick = { showSpeedMenu = true }) {
-                                Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White)
+                            LiquidGlassButton(
+                                onClick = { showSpeedMenu = true },
+                                modifier = Modifier.size(42.dp),
+                                shape = CircleShape
+                            ) {
+                                Icon(Icons.Default.Speed, contentDescription = "Speed", tint = Color.White, modifier = Modifier.size(20.dp))
                             }
                             DropdownMenu(
                                 expanded = showSpeedMenu,
@@ -285,49 +300,51 @@ fun LongVideoPlayerScreen(
                         }
                     }
 
-                    // Center Rewind / Play-Pause / Forward
+                    // Center Rewind / Play-Pause / Forward (Liquid Glass Controls)
                     Row(
                         modifier = Modifier.align(Alignment.Center),
-                        horizontalArrangement = Arrangement.spacedBy(32.dp),
+                        horizontalArrangement = Arrangement.spacedBy(28.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
+                        LiquidGlassButton(
                             onClick = {
                                 val target = (exoPlayer.currentPosition - 10000L).coerceAtLeast(0L)
                                 exoPlayer.seekTo(target)
                                 currentPosition = target
-                            }
+                            },
+                            modifier = Modifier.size(50.dp),
+                            shape = CircleShape
                         ) {
-                            Icon(Icons.Default.FastRewind, contentDescription = "Rewind 10s", tint = Color.White, modifier = Modifier.size(34.dp))
+                            Icon(Icons.Default.FastRewind, contentDescription = "Rewind 10s", tint = Color.White, modifier = Modifier.size(28.dp))
                         }
 
-                        Surface(
+                        // Prominent Center Liquid Play/Pause Button
+                        LiquidGlassButton(
+                            onClick = {
+                                if (isPlaying) exoPlayer.pause() else exoPlayer.play()
+                            },
+                            modifier = Modifier.size(68.dp),
                             shape = CircleShape,
-                            color = CyanAccent,
-                            modifier = Modifier.size(56.dp)
+                            isProminent = true
                         ) {
-                            IconButton(
-                                onClick = {
-                                    if (isPlaying) exoPlayer.pause() else exoPlayer.play()
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = if (isPlaying) "Pause" else "Play",
-                                    tint = AmoledBlack,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isPlaying) "Pause" else "Play",
+                                tint = Color.Black,
+                                modifier = Modifier.size(36.dp)
+                            )
                         }
 
-                        IconButton(
+                        LiquidGlassButton(
                             onClick = {
                                 val target = (exoPlayer.currentPosition + 10000L).coerceAtMost(totalDuration)
                                 exoPlayer.seekTo(target)
                                 currentPosition = target
-                            }
+                            },
+                            modifier = Modifier.size(50.dp),
+                            shape = CircleShape
                         ) {
-                            Icon(Icons.Default.FastForward, contentDescription = "Forward 10s", tint = Color.White, modifier = Modifier.size(34.dp))
+                            Icon(Icons.Default.FastForward, contentDescription = "Forward 10s", tint = Color.White, modifier = Modifier.size(28.dp))
                         }
                     }
 
@@ -507,16 +524,24 @@ fun LongVideoPlayerScreen(
 
 @Composable
 private fun TechBadge(text: String) {
-    Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = CardElevated
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0x331E293B))
+            .border(
+                width = 0.8.dp,
+                brush = Brush.verticalGradient(
+                    listOf(Color(0x4DFFFFFF), Color(0x18FFFFFF))
+                ),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         Text(
             text = text,
             color = TextSecondary,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -528,24 +553,65 @@ private fun PlayerActionButton(
     tint: Color = TextSecondary,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1.0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+        ),
+        label = "action_btn_scale"
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
-        Surface(
-            shape = CircleShape,
-            color = CardElevated,
-            modifier = Modifier.size(42.dp)
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x38FFFFFF),
+                            Color(0x2418253A),
+                            Color(0x400A0F1A)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x66FFFFFF),
+                            Color(0x1AFFFFFF),
+                            Color(0x3300E5FF)
+                        )
+                    ),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = tint,
-                modifier = Modifier.padding(10.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, color = TextMuted, fontSize = 10.sp)
+        Text(text = label, color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Normal)
     }
 }
 

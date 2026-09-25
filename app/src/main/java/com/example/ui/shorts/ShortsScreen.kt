@@ -9,8 +9,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,8 +54,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -84,6 +88,7 @@ fun ShortsScreen(
     val shortVideos by viewModel.shortVideos.collectAsStateWithLifecycle()
     val allVideos by viewModel.allVideos.collectAsStateWithLifecycle()
 
+    val targetShortId by viewModel.targetShortVideoId.collectAsStateWithLifecycle()
     val videos = if (shortVideos.isNotEmpty()) shortVideos else allVideos
 
     if (videos.isEmpty()) {
@@ -94,7 +99,7 @@ fun ShortsScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "No short videos found in storage.\nAdd 9:16 videos to your device.",
+                text = "No local videos found on your device.\nUse the scan or pick file button on Home to add videos.",
                 color = TextMuted,
                 fontSize = 14.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -104,6 +109,16 @@ fun ShortsScreen(
     }
 
     val pagerState = rememberPagerState(pageCount = { videos.size })
+
+    LaunchedEffect(targetShortId, videos) {
+        if (targetShortId != null) {
+            val targetIdx = videos.indexOfFirst { it.id == targetShortId }
+            if (targetIdx >= 0) {
+                pagerState.scrollToPage(targetIdx)
+            }
+            viewModel.clearTargetShortVideo()
+        }
+    }
 
     Box(
         modifier = modifier
@@ -244,19 +259,20 @@ private fun ShortVideoItem(
         )
 
         // Top indicator (e.g. 3/24)
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = AmoledBlack.copy(alpha = 0.6f),
+        Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 40.dp, end = 16.dp)
+                .padding(top = 48.dp, end = 16.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0x59080E1A))
+                .border(0.8.dp, Color(0x59FFFFFF), RoundedCornerShape(16.dp))
+                .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
             Text(
                 text = "$currentIndex / $totalCount",
                 color = Color.White,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                fontWeight = FontWeight.Medium
             )
         }
 
@@ -267,16 +283,19 @@ private fun ShortVideoItem(
             exit = fadeOut(),
             modifier = Modifier.align(Alignment.Center)
         ) {
-            Surface(
-                shape = CircleShape,
-                color = Color.Black.copy(alpha = 0.65f),
-                modifier = Modifier.size(72.dp)
+            Box(
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(CircleShape)
+                    .background(Color(0x8000E5FF))
+                    .border(1.5.dp, Color(0xCCFFFFFF), CircleShape),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Pause,
                     contentDescription = "Paused",
-                    tint = CyanAccent,
-                    modifier = Modifier.padding(16.dp)
+                    tint = Color.Black,
+                    modifier = Modifier.size(38.dp)
                 )
             }
         }
@@ -405,25 +424,64 @@ private fun ActionRailItem(
     tint: Color,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1.0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+        ),
+        label = "short_action_scale"
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
-        Surface(
-            shape = CircleShape,
-            color = Color.Black.copy(alpha = 0.5f),
-            modifier = Modifier.size(44.dp)
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x3BFFFFFF),
+                            Color(0x280A101C),
+                            Color(0x40050810)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x66FFFFFF),
+                            Color(0x1AFFFFFF),
+                            Color(0x3300E5FF)
+                        )
+                    ),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = tint,
-                modifier = Modifier
-                    .padding(10.dp)
-                    .fillMaxSize()
+                modifier = Modifier.size(24.dp)
             )
         }
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
             color = Color.White,

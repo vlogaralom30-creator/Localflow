@@ -1,6 +1,7 @@
 package com.example.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -94,7 +95,7 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     private val _searchSort = MutableStateFlow(VideoSortOrder.NEWEST)
     val searchSort: StateFlow<VideoSortOrder> = _searchSort.asStateFlow()
 
-    private val _recentSearches = MutableStateFlow(listOf("movie", "anime", "travel", "nature"))
+    private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
     val recentSearches: StateFlow<List<String>> = _recentSearches.asStateFlow()
 
     // Permission and Scanning
@@ -106,6 +107,10 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _statusMessage = MutableStateFlow<String?>(null)
     val statusMessage: StateFlow<String?> = _statusMessage.asStateFlow()
+
+    // Selected short video target index when clicked from shelf/feed
+    private val _targetShortVideoId = MutableStateFlow<Long?>(null)
+    val targetShortVideoId: StateFlow<Long?> = _targetShortVideoId.asStateFlow()
 
     // Video streams
     val allVideos: StateFlow<List<VideoEntity>> = repository.allVideos
@@ -190,8 +195,27 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     private val _defaultOrientation = MutableStateFlow("Auto")
     val defaultOrientation: StateFlow<String> = _defaultOrientation.asStateFlow()
 
+    // Light / Dark Theme state (Persisted in SharedPreferences)
+    private val themePrefs = (application as Application).getSharedPreferences("localflow_theme_prefs", Context.MODE_PRIVATE)
+    private val _isDarkTheme = MutableStateFlow(themePrefs.getBoolean("is_dark_theme", true))
+    val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
+
+    fun toggleTheme() {
+        val next = !_isDarkTheme.value
+        _isDarkTheme.value = next
+        themePrefs.edit().putBoolean("is_dark_theme", next).apply()
+    }
+
+    fun setDarkTheme(isDark: Boolean) {
+        _isDarkTheme.value = isDark
+        themePrefs.edit().putBoolean("is_dark_theme", isDark).apply()
+    }
+
     init {
-        checkPermission()
+        viewModelScope.launch {
+            repository.purgeAllDemoData()
+            checkPermission()
+        }
     }
 
     fun checkPermission() {
@@ -208,11 +232,6 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
         if (granted) {
             scanVideos()
-        } else {
-            // Seed initial demo media if empty so app UI is rich immediately
-            viewModelScope.launch {
-                repository.seedSampleVideosIfEmpty()
-            }
         }
     }
 
@@ -221,25 +240,20 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
         if (granted) {
             scanVideos()
         } else {
-            _statusMessage.value = "Storage permission not granted. You can still pick files or use demo library."
+            _statusMessage.value = "Storage permission is required to display your local videos."
         }
     }
 
     fun scanVideos() {
         viewModelScope.launch {
             _isScanning.value = true
+            repository.purgeAllDemoData()
             val result = repository.scanMediaStore()
             _isScanning.value = false
             result.onSuccess { count ->
-                if (count == 0) {
-                    repository.seedSampleVideosIfEmpty()
-                    _statusMessage.value = "Device library empty: loaded sample videos and albums."
-                } else {
-                    _statusMessage.value = "Discovered $count local video(s)"
-                }
+                _statusMessage.value = if (count > 0) "Found $count local video(s)" else "No videos found in device storage"
             }.onFailure {
-                repository.seedSampleVideosIfEmpty()
-                _statusMessage.value = "Storage scanner fallback: loaded demo library."
+                _statusMessage.value = "Storage scan error: ${it.localizedMessage}"
             }
         }
     }
@@ -280,7 +294,7 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
     fun playVideo(video: VideoEntity) {
         if (video.isShort) {
-            // Navigate to Shorts tab and play
+            _targetShortVideoId.value = video.id
             _currentNavTab.value = NavTab.SHORTS
         } else {
             _currentPlayingVideo.value = video
@@ -288,6 +302,10 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
                 repository.incrementWatchCount(video.id)
             }
         }
+    }
+
+    fun clearTargetShortVideo() {
+        _targetShortVideoId.value = null
     }
 
     fun closePlayer() {

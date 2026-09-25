@@ -1,8 +1,10 @@
 package com.example.ui.library
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -42,6 +45,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -87,14 +93,19 @@ fun LibraryScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.openSearch() }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary)
+                    com.example.ui.theme.LiquidGlassButton(
+                        onClick = { viewModel.openSearch() },
+                        modifier = Modifier.size(38.dp),
+                        shape = CircleShape
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AmoledBlack)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
-        containerColor = AmoledBlack
+        containerColor = Color.Transparent
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -116,23 +127,10 @@ fun LibraryScreen(
                     )
                     items(filters) { (filt, label) ->
                         val isSelected = selectedFilter == filt
-                        FilterChip(
+                        com.example.ui.theme.LiquidGlassFilterChip(
                             selected = isSelected,
                             onClick = { viewModel.setLibraryFilter(filt) },
-                            label = {
-                                Text(
-                                    text = label,
-                                    fontSize = 12.sp,
-                                    color = if (isSelected) AmoledBlack else TextSecondary,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = CyanAccent,
-                                containerColor = CardElevated
-                            ),
-                            border = null,
-                            shape = RoundedCornerShape(20.dp)
+                            label = label
                         )
                     }
                 }
@@ -232,12 +230,31 @@ private fun LibraryNavigationRow(
     countText: String,
     onClick: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = CardDark,
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color(0x35FFFFFF),
+                        Color(0x20152032),
+                        Color(0x350A0F1A)
+                    )
+                )
+            )
+            .border(
+                width = 0.8.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color(0x52FFFFFF),
+                        Color(0x15FFFFFF),
+                        Color(0x2800E5FF)
+                    )
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
             .clickable(onClick = onClick)
     ) {
         Row(

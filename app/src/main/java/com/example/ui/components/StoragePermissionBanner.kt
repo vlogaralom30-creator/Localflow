@@ -117,7 +117,7 @@ fun StoragePermissionHandler(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Allow Naxxivo Video Player to scan and play video files stored on your device's internal storage and SD card.",
+                    text = "Allow LocalFlow to scan and play video files stored on your device's internal storage and SD card.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                     lineHeight = 20.sp
