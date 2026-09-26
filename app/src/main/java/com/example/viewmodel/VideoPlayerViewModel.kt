@@ -431,6 +431,14 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
         _isFullscreen.value = false
     }
 
+    fun pausePlayback() {
+        val player = _activeExoPlayer ?: return
+        if (player.isPlaying) {
+            player.pause()
+            _isPlaying.value = false
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         _activeExoPlayer?.release()

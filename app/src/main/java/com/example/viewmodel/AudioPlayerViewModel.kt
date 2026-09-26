@@ -106,6 +106,7 @@ class AudioPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
     // MediaController connected to background AudioPlaybackService
     private var mediaController: MediaController? = null
+    private var pendingPlayTrack: Pair<AudioEntity, List<AudioEntity>>? = null
 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(playing: Boolean) {
@@ -144,6 +145,10 @@ class AudioPlayerViewModel(application: Application) : AndroidViewModel(applicat
                 val controller = controllerFuture.get()
                 controller.addListener(playerListener)
                 mediaController = controller
+                pendingPlayTrack?.let { (t, q) ->
+                    pendingPlayTrack = null
+                    playTrack(t, q)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -175,7 +180,11 @@ class AudioPlayerViewModel(application: Application) : AndroidViewModel(applicat
             repository.incrementPlayCount(track.id)
         }
 
-        val controller = mediaController ?: return
+        val controller = mediaController
+        if (controller == null) {
+            pendingPlayTrack = Pair(track, queue)
+            return
+        }
         val metadata = MediaMetadata.Builder()
             .setTitle(track.title)
             .setArtist(track.artist)
@@ -210,6 +219,11 @@ class AudioPlayerViewModel(application: Application) : AndroidViewModel(applicat
         } else {
             controller.play()
         }
+    }
+
+    fun pausePlayback() {
+        mediaController?.pause()
+        _isPlaying.value = false
     }
 
     fun skipNext() {
