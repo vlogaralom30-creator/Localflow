@@ -160,26 +160,21 @@ private fun ShortVideoItem(
     var showPauseOverlay by remember { mutableStateOf(false) }
     var progress by remember { mutableFloatStateOf(0f) }
 
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            repeatMode = Player.REPEAT_MODE_ONE
-            setMediaItem(MediaItem.fromUri(Uri.parse(video.uri)))
-            prepare()
-        }
-    }
-
-    LaunchedEffect(isCurrentPage) {
+    val exoPlayer = remember(isCurrentPage, video.id) {
         if (isCurrentPage) {
-            exoPlayer.seekTo(0)
-            exoPlayer.playWhenReady = true
-            isPlaying = true
+            ExoPlayer.Builder(context).build().apply {
+                repeatMode = Player.REPEAT_MODE_ONE
+                setMediaItem(MediaItem.fromUri(Uri.parse(video.uri)))
+                prepare()
+                playWhenReady = true
+            }
         } else {
-            exoPlayer.playWhenReady = false
-            isPlaying = false
+            null
         }
     }
 
     DisposableEffect(exoPlayer) {
+        val player = exoPlayer ?: return@DisposableEffect onDispose {}
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
                 isBuffering = state == Player.STATE_BUFFERING
@@ -189,18 +184,19 @@ private fun ShortVideoItem(
                 isPlaying = playing
             }
         }
-        exoPlayer.addListener(listener)
+        player.addListener(listener)
 
         onDispose {
-            exoPlayer.removeListener(listener)
-            exoPlayer.release()
+            player.removeListener(listener)
+            player.release()
         }
     }
 
-    LaunchedEffect(isCurrentPage, isPlaying) {
+    LaunchedEffect(isCurrentPage, isPlaying, exoPlayer) {
+        val player = exoPlayer ?: return@LaunchedEffect
         while (isCurrentPage && isPlaying) {
-            val dur = exoPlayer.duration
-            val pos = exoPlayer.currentPosition
+            val dur = player.duration
+            val pos = player.currentPosition
             if (dur > 0) {
                 progress = (pos.toFloat() / dur.toFloat()).coerceIn(0f, 1f)
             }
@@ -215,29 +211,46 @@ private fun ShortVideoItem(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) {
-                if (isPlaying) {
-                    exoPlayer.pause()
-                    showPauseOverlay = true
-                } else {
-                    exoPlayer.play()
-                    showPauseOverlay = false
+                exoPlayer?.let { player ->
+                    if (isPlaying) {
+                        player.pause()
+                        showPauseOverlay = true
+                    } else {
+                        player.play()
+                        showPauseOverlay = false
+                    }
                 }
             }
     ) {
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
+        if (exoPlayer != null) {
+            AndroidView(
+                factory = { ctx ->
+                    PlayerView(ctx).apply {
+                        player = exoPlayer
+                        useController = false
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        layoutParams = FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    }
+                },
+                update = { view ->
+                    if (view.player != exoPlayer) {
+                        view.player = exoPlayer
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // Show thumbnail for offscreen pre-composed pages to save MediaCodec hardware resources
+            coil.compose.AsyncImage(
+                model = video.uri,
+                contentDescription = video.title,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         // Gradient Scrim at bottom
         Box(

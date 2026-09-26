@@ -1,5 +1,6 @@
 package com.example.ui.home
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -44,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -64,6 +67,7 @@ import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.getPaletteForPreset
 import com.example.ui.theme.liquidGlass
 import com.example.viewmodel.HomeCategory
+import com.example.viewmodel.NavTab
 import com.example.viewmodel.VideoPlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,6 +84,7 @@ fun HomeScreen(
     val allVideos by viewModel.allVideos.collectAsStateWithLifecycle()
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
     val isDark = LocalIsDarkTheme.current
     val preset = LocalLiquidPreset.current
     val palette = getPaletteForPreset(preset)
@@ -88,6 +93,14 @@ fun HomeScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                // Ignore if provider doesn't support persistent grant
+            }
             viewModel.importVideoUri(uri)
         }
     }
@@ -151,6 +164,14 @@ fun HomeScreen(
                         modifier = Modifier.testTag("home_search_btn")
                     ) {
                         Icon(Icons.Default.Search, contentDescription = "Search", tint = TextPrimary, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    LiquidGlassCircleButton(
+                        onClick = { viewModel.setNavTab(NavTab.MUSIC) },
+                        size = 38.dp,
+                        modifier = Modifier.testTag("home_music_mode_btn")
+                    ) {
+                        Icon(Icons.Default.MusicNote, contentDescription = "Music Mode", tint = palette.primaryGlow, modifier = Modifier.size(18.dp))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     LiquidLensSwitch(

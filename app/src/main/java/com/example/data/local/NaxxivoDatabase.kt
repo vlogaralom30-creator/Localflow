@@ -9,14 +9,16 @@ import androidx.room.RoomDatabase
     entities = [
         VideoEntity::class,
         AlbumEntity::class,
-        VideoAlbumCrossRef::class
+        VideoAlbumCrossRef::class,
+        AudioEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class NaxxivoDatabase : RoomDatabase() {
     abstract fun videoDao(): VideoDao
     abstract fun albumDao(): AlbumDao
+    abstract fun audioDao(): AudioDao
 
     companion object {
         @Volatile

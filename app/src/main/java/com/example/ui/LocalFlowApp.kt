@@ -1,7 +1,14 @@
 package com.example.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -17,8 +24,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.albums.AlbumsScreen
+import com.example.ui.audio.AudioLibraryScreen
+import com.example.ui.audio.AudioPlayerScreen
 import com.example.ui.components.AddToAlbumBottomSheet
 import com.example.ui.components.CreateAlbumDialog
+import com.example.ui.components.LiquidGlassAudioMiniPlayer
+import com.example.ui.components.LiquidGlassMiniPlayer
 import com.example.ui.components.LocalFlowBottomBar
 import com.example.ui.components.VideoDetailsBottomSheet
 import com.example.ui.home.HomeScreen
@@ -29,22 +40,34 @@ import com.example.ui.settings.SettingsScreen
 import com.example.ui.shorts.ShortsScreen
 import com.example.ui.theme.AmbientLiquidBackdrop
 import com.example.ui.theme.LiquidGlassSnackbar
+import com.example.viewmodel.AudioPlayerViewModel
 import com.example.viewmodel.NavTab
 import com.example.viewmodel.VideoPlayerViewModel
 
 @Composable
 fun LocalFlowApp(
     viewModel: VideoPlayerViewModel,
-    modifier: Modifier = Modifier
+    audioViewModel: AudioPlayerViewModel,
+    modifier: Modifier = Modifier,
+    onEnterPip: () -> Unit = {}
 ) {
     val currentTab by viewModel.currentNavTab.collectAsStateWithLifecycle()
     val currentPlayingVideo by viewModel.currentPlayingVideo.collectAsStateWithLifecycle()
+    val isMiniPlayerMode by viewModel.isMiniPlayerMode.collectAsStateWithLifecycle()
+    val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
     val isSearchOpen by viewModel.isSearchOpen.collectAsStateWithLifecycle()
     val detailsVideo by viewModel.detailsVideo.collectAsStateWithLifecycle()
     val addToAlbumVideo by viewModel.addToAlbumVideo.collectAsStateWithLifecycle()
     val albums by viewModel.albumsWithCount.collectAsStateWithLifecycle()
     val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
     val liquidPreset by viewModel.liquidPreset.collectAsStateWithLifecycle()
+
+    // Audio Playback State
+    val currentAudioTrack by audioViewModel.currentTrack.collectAsStateWithLifecycle()
+    val isAudioPlayerOpen by audioViewModel.isAudioPlayerOpen.collectAsStateWithLifecycle()
+    val isMiniAudioPlayer by audioViewModel.isMiniAudioPlayer.collectAsStateWithLifecycle()
+    val isAudioPlaying by audioViewModel.isPlaying.collectAsStateWithLifecycle()
+    val audioStatusMessage by audioViewModel.statusMessage.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var showCreateAlbumDialog by remember { mutableStateOf(false) }
@@ -56,22 +79,39 @@ fun LocalFlowApp(
         }
     }
 
-    // 1. Long Video Player Screen (Overlays the feed)
-    if (currentPlayingVideo != null) {
+    LaunchedEffect(audioStatusMessage) {
+        audioStatusMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            audioViewModel.clearStatusMessage()
+        }
+    }
+
+    // 1. Full Video Player Screen (Overlays the app when active and not minimized)
+    if (currentPlayingVideo != null && !isMiniPlayerMode) {
         LongVideoPlayerScreen(
             video = currentPlayingVideo!!,
-            viewModel = viewModel
+            viewModel = viewModel,
+            onEnterPip = onEnterPip
         )
         return
     }
 
-    // 2. Search Screen (Overlays when active)
+    // 2. Full Audio Player Screen (Overlays the app when open and not minimized)
+    if (currentAudioTrack != null && isAudioPlayerOpen) {
+        AudioPlayerScreen(
+            track = currentAudioTrack!!,
+            viewModel = audioViewModel
+        )
+        return
+    }
+
+    // 3. Search Screen (Overlays when active)
     if (isSearchOpen) {
         SearchScreen(viewModel = viewModel)
         return
     }
 
-    // 3. Main Scaffold with 5 Bottom Navigation Tabs & Ambient Liquid Glass Backdrop
+    // 4. Main Scaffold with 6 Bottom Navigation Tabs, Floating Mini Players & Ambient Liquid Glass Backdrop
     AmbientLiquidBackdrop(
         modifier = modifier.fillMaxSize(),
         preset = liquidPreset
@@ -88,10 +128,48 @@ fun LocalFlowApp(
                 )
             },
             bottomBar = {
-                LocalFlowBottomBar(
-                    currentTab = currentTab,
-                    onTabSelected = { viewModel.setNavTab(it) }
-                )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Floating Video Mini Player docked right above bottom navigation bar
+                    AnimatedVisibility(
+                        visible = currentPlayingVideo != null && isMiniPlayerMode,
+                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                    ) {
+                        currentPlayingVideo?.let { playing ->
+                            LiquidGlassMiniPlayer(
+                                video = playing,
+                                exoPlayer = viewModel.activeExoPlayer,
+                                isPlaying = isPlaying,
+                                onExpand = { viewModel.expandPlayer() },
+                                onTogglePlayPause = { viewModel.togglePlayPause() },
+                                onClose = { viewModel.closePlayer() }
+                            )
+                        }
+                    }
+
+                    // Floating Audio Mini Player docked right above bottom navigation bar
+                    AnimatedVisibility(
+                        visible = currentAudioTrack != null && isMiniAudioPlayer,
+                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                    ) {
+                        currentAudioTrack?.let { audioTrack ->
+                            LiquidGlassAudioMiniPlayer(
+                                track = audioTrack,
+                                isPlaying = isAudioPlaying,
+                                onExpand = { audioViewModel.expandPlayer() },
+                                onTogglePlayPause = { audioViewModel.togglePlayPause() },
+                                onSkipNext = { audioViewModel.skipNext() },
+                                onClose = { audioViewModel.closePlayer() }
+                            )
+                        }
+                    }
+
+                    LocalFlowBottomBar(
+                        currentTab = currentTab,
+                        onTabSelected = { viewModel.setNavTab(it) }
+                    )
+                }
             },
             containerColor = Color.Transparent
         ) { innerPadding ->
@@ -103,6 +181,7 @@ fun LocalFlowApp(
                 when (currentTab) {
                     NavTab.HOME -> HomeScreen(viewModel = viewModel)
                     NavTab.SHORTS -> ShortsScreen(viewModel = viewModel)
+                    NavTab.MUSIC -> AudioLibraryScreen(viewModel = audioViewModel)
                     NavTab.LIBRARY -> LibraryScreen(viewModel = viewModel)
                     NavTab.ALBUMS -> AlbumsScreen(viewModel = viewModel)
                     NavTab.SETTINGS -> SettingsScreen(viewModel = viewModel)
@@ -139,7 +218,10 @@ fun LocalFlowApp(
             onAlbumSelected = { albumId, albumName ->
                 viewModel.addVideoToAlbum(albumId, addToAlbumVideo!!.id, albumName)
             },
-            onCreateNewAlbum = { showCreateAlbumDialog = true }
+            onCreateNewAlbum = {
+                viewModel.closeAddToAlbum()
+                showCreateAlbumDialog = true
+            }
         )
     }
 

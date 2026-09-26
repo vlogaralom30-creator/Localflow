@@ -155,15 +155,20 @@ class VideoRepository(
             var duration = 0L
             var width = 0
             var height = 0
+            val retriever = MediaMetadataRetriever()
             try {
-                val retriever = MediaMetadataRetriever()
                 retriever.setDataSource(context, uri)
                 duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
                 width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
                 height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
-                retriever.release()
             } catch (e: Exception) {
                 Log.w("VideoRepository", "Could not extract metadata via retriever", e)
+            } finally {
+                try {
+                    retriever.release()
+                } catch (e: Exception) {
+                    // Ignore release errors
+                }
             }
 
             val isShort = height > width || (duration in 1..65000L && width <= height)

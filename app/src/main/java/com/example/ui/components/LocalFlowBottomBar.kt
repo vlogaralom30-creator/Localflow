@@ -17,11 +17,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderSpecial
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.outlined.FolderSpecial
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VideoLibrary
@@ -61,6 +63,7 @@ fun LocalFlowBottomBar(
     val items = listOf(
         Triple(NavTab.HOME, "Home", Pair(Icons.Filled.Home, Icons.Outlined.Home)),
         Triple(NavTab.SHORTS, "Shorts", Pair(Icons.Filled.PlayCircle, Icons.Outlined.PlayCircle)),
+        Triple(NavTab.MUSIC, "Music", Pair(Icons.Filled.MusicNote, Icons.Outlined.MusicNote)),
         Triple(NavTab.LIBRARY, "Library", Pair(Icons.Filled.VideoLibrary, Icons.Outlined.VideoLibrary)),
         Triple(NavTab.ALBUMS, "Albums", Pair(Icons.Filled.FolderSpecial, Icons.Outlined.FolderSpecial)),
         Triple(NavTab.SETTINGS, "Settings", Pair(Icons.Filled.Settings, Icons.Outlined.Settings))

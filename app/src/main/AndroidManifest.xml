@@ -5,6 +5,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Android 13+ (API 33+) permission for reading local video files -->
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Android 13+ (API 33+) permission for reading local audio music files -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Foreground Service & Media Playback -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Android 14+ (API 34+) partial access permission -->
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <!-- Android 12 and below permission for reading local storage -->
@@ -27,7 +33,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:supportsPictureInPicture="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:windowSoftInputMode="adjustResize"
             android:label="@string/app_name"
             android:theme="@style/Theme.MyApplication">
@@ -42,7 +49,24 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:mimeType="video/*" />
             </intent-filter>
+            <!-- Intent filter to open audio music files from file managers -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
         </activity>
+
+        <!-- Media3 Audio Playback Background & Notification Service -->
+        <service
+            android:name=".service.AudioPlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

@@ -7,6 +7,7 @@ import coil.decode.VideoFrameDecoder
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import com.example.data.local.NaxxivoDatabase
+import com.example.data.repository.AudioRepository
 import com.example.data.repository.VideoRepository
 
 class NaxxivoApp : Application(), ImageLoaderFactory {
@@ -14,11 +15,14 @@ class NaxxivoApp : Application(), ImageLoaderFactory {
         private set
     lateinit var videoRepository: VideoRepository
         private set
+    lateinit var audioRepository: AudioRepository
+        private set
 
     override fun onCreate() {
         super.onCreate()
         database = NaxxivoDatabase.getInstance(this)
         videoRepository = VideoRepository(this, database.videoDao(), database.albumDao())
+        audioRepository = AudioRepository(this, database.audioDao())
     }
 
     override fun newImageLoader(): ImageLoader {

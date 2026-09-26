@@ -8,6 +8,9 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import com.example.NaxxivoApp
 import com.example.data.engine.RelatedVideosEngine
 import com.example.data.local.AlbumEntity
@@ -27,6 +30,7 @@ import kotlinx.coroutines.launch
 enum class NavTab {
     HOME,
     SHORTS,
+    MUSIC,
     LIBRARY,
     ALBUMS,
     SETTINGS
@@ -159,6 +163,21 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     // Active Playback: Long Video
     private val _currentPlayingVideo = MutableStateFlow<VideoEntity?>(null)
     val currentPlayingVideo: StateFlow<VideoEntity?> = _currentPlayingVideo.asStateFlow()
+
+    private val _isPlaying = MutableStateFlow(true)
+    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    // Mini Player Mode (In-app floating glass player dock)
+    private val _isMiniPlayerMode = MutableStateFlow(false)
+    val isMiniPlayerMode: StateFlow<Boolean> = _isMiniPlayerMode.asStateFlow()
+
+    // Fullscreen Cinema Mode (Landscape edge-to-edge)
+    private val _isFullscreen = MutableStateFlow(false)
+    val isFullscreen: StateFlow<Boolean> = _isFullscreen.asStateFlow()
+
+    // System Picture-in-Picture State
+    private val _isInSystemPip = MutableStateFlow(false)
+    val isInSystemPip: StateFlow<Boolean> = _isInSystemPip.asStateFlow()
 
     // Smart Related Videos (Computed on the fly)
     val relatedVideos: StateFlow<List<VideoEntity>> = combine(
@@ -311,6 +330,7 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
             _targetShortVideoId.value = video.id
             _currentNavTab.value = NavTab.SHORTS
         } else {
+            _isMiniPlayerMode.value = false
             _currentPlayingVideo.value = video
             viewModelScope.launch {
                 repository.incrementWatchCount(video.id)
@@ -322,8 +342,99 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
         _targetShortVideoId.value = null
     }
 
+    fun minimizePlayer() {
+        _isMiniPlayerMode.value = true
+        _isFullscreen.value = false
+    }
+
+    fun expandPlayer() {
+        _isMiniPlayerMode.value = false
+    }
+
+    fun setFullscreen(fullscreen: Boolean) {
+        _isFullscreen.value = fullscreen
+    }
+
+    fun toggleFullscreen() {
+        _isFullscreen.value = !_isFullscreen.value
+    }
+
+    fun setInSystemPip(inPip: Boolean) {
+        _isInSystemPip.value = inPip
+    }
+
+    private var _activeExoPlayer: ExoPlayer? = null
+    val activeExoPlayer: ExoPlayer? get() = _activeExoPlayer
+
+    private val playerListener = object : Player.Listener {
+        override fun onIsPlayingChanged(playing: Boolean) {
+            _isPlaying.value = playing
+        }
+    }
+
+    fun getOrCreatePlayer(context: Context, video: VideoEntity): ExoPlayer {
+        val existing = _activeExoPlayer
+        if (existing != null && _currentPlayingVideo.value?.id == video.id) {
+            return existing
+        }
+        existing?.removeListener(playerListener)
+        existing?.release()
+        val newPlayer = ExoPlayer.Builder(context.applicationContext).build().apply {
+            setMediaItem(MediaItem.fromUri(Uri.parse(video.uri)))
+            if (video.lastPositionMs > 0) {
+                seekTo(video.lastPositionMs)
+            }
+            setPlaybackSpeed(_playbackSpeed.value)
+            prepare()
+            playWhenReady = true
+        }
+        newPlayer.addListener(playerListener)
+        _activeExoPlayer = newPlayer
+        _isPlaying.value = true
+        return newPlayer
+    }
+
+    fun togglePlayPause() {
+        val player = _activeExoPlayer ?: return
+        if (player.isPlaying) {
+            player.pause()
+            _isPlaying.value = false
+        } else {
+            player.play()
+            _isPlaying.value = true
+        }
+    }
+
+    fun seekBy(deltaMs: Long) {
+        val player = _activeExoPlayer ?: return
+        val current = player.currentPosition
+        val dur = player.duration.coerceAtLeast(0L)
+        val target = (current + deltaMs).coerceIn(0L, if (dur > 0) dur else Long.MAX_VALUE)
+        player.seekTo(target)
+    }
+
+    fun releaseActivePlayer() {
+        val current = _currentPlayingVideo.value
+        val player = _activeExoPlayer
+        if (current != null && player != null) {
+            updatePlaybackPosition(current.id, player.currentPosition)
+        }
+        _activeExoPlayer?.removeListener(playerListener)
+        _activeExoPlayer?.release()
+        _activeExoPlayer = null
+    }
+
     fun closePlayer() {
+        releaseActivePlayer()
         _currentPlayingVideo.value = null
+        _isMiniPlayerMode.value = false
+        _isFullscreen.value = false
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        _activeExoPlayer?.release()
+        _activeExoPlayer = null
     }
 
     fun updatePlaybackPosition(id: Long, positionMs: Long) {
@@ -434,6 +545,7 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     // Settings
     fun setPlaybackSpeed(speed: Float) {
         _playbackSpeed.value = speed
+        _activeExoPlayer?.setPlaybackSpeed(speed)
     }
 
     fun toggleAutoPlayNext() {
